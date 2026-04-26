@@ -17,6 +17,7 @@ builder.Services.AddIdentity<AppUser, IdentityRole>()
     .AddDefaultTokenProviders();
 
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<TeacherService>();
 
 builder.Services.AddAuthentication(options =>
 {
