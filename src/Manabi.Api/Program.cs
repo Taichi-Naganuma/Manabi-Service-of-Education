@@ -1,9 +1,11 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Manabi.Api.Data;
+using Manabi.Api.Hubs;
 using Manabi.Api.Models;
 using Manabi.Api.Services;
 
@@ -18,6 +20,7 @@ builder.Services.AddIdentity<AppUser, IdentityRole>()
 
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<TeacherService>();
+builder.Services.AddScoped<ChatService>();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -37,7 +40,23 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]!))
     };
+    // SignalR はクエリパラメータでトークンを渡す
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = ctx =>
+        {
+            var token = ctx.Request.Query["access_token"];
+            if (!string.IsNullOrEmpty(token) &&
+                ctx.HttpContext.Request.Path.StartsWithSegments("/hubs/chat"))
+                ctx.Token = token;
+            return Task.CompletedTask;
+        }
+    };
 });
+
+// SignalR の UserIdentifier を JWT の "sub" クレームで解決する
+builder.Services.AddSingleton<IUserIdProvider, SubClaimUserIdProvider>();
+builder.Services.AddSignalR();
 
 builder.Services.AddControllers();
 builder.Services.AddCors(options =>
@@ -55,5 +74,6 @@ app.UseCors("AllowClient");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<ChatHub>("/hubs/chat");
 
 app.Run();
