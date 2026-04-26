@@ -72,8 +72,8 @@ public class AuthController(
     [HttpGet("me")]
     public async Task<ActionResult<AuthResponse>> Me()
     {
-        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
-                  ?? User.FindFirst("sub")?.Value;
+        var userId = User.FindFirst("sub")?.Value
+                  ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
         var user = await userManager.FindByIdAsync(userId!);
         if (user == null) return Unauthorized();

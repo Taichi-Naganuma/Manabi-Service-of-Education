@@ -46,5 +46,29 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 
         builder.Entity<DirectMessage>()
             .HasIndex(m => new { m.SenderId, m.RecipientId });
+
+        builder.Entity<Message>()
+            .HasOne(m => m.Session)
+            .WithMany(s => s.Messages)
+            .HasForeignKey(m => m.SessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<Message>()
+            .HasOne(m => m.Sender)
+            .WithMany()
+            .HasForeignKey(m => m.SenderId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Review>()
+            .HasOne(r => r.Session)
+            .WithOne(s => s.Review)
+            .HasForeignKey<Review>(r => r.SessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<Review>()
+            .HasOne(r => r.Reviewer)
+            .WithMany()
+            .HasForeignKey(r => r.ReviewerId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
