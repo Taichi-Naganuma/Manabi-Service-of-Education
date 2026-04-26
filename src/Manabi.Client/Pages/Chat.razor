@@ -1,0 +1,97 @@
+@page "/chat/{RecipientId}"
+@attribute [Authorize]
+@implements IAsyncDisposable
+@inject ChatApiService ChatApi
+@inject ChatHubService HubService
+@inject TeacherApiService TeacherApi
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>チャット — まなび</PageTitle>
+
+<div class="d-flex flex-column" style="height: calc(100vh - 120px)">
+    <div class="border-bottom pb-2 mb-2">
+        <strong>@recipientName</strong>
+    </div>
+
+    <div class="flex-grow-1 overflow-auto mb-2" @ref="messageContainer">
+        @foreach (var msg in messages)
+        {
+            <div class="d-flex @(msg.IsOwn ? "justify-content-end" : "justify-content-start") mb-2">
+                <div class="p-2 rounded @(msg.IsOwn ? "bg-primary text-white" : "bg-light border")"
+                     style="max-width: 70%">
+                    <div>@msg.Content</div>
+                    <small class="@(msg.IsOwn ? "text-white-50" : "text-muted")">
+                        @msg.SentAt.ToLocalTime().ToString("HH:mm")
+                    </small>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="d-flex gap-2">
+        <input class="form-control" placeholder="メッセージを入力..."
+               @bind="inputText" @bind:event="oninput"
+               @onkeydown="HandleKeyDown" />
+        <button class="btn btn-primary" @onclick="SendAsync" disabled="@(string.IsNullOrWhiteSpace(inputText))">
+            送信
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string RecipientId { get; set; } = "";
+
+    private List<MessageResponse> messages = [];
+    private string inputText = "";
+    private string recipientName = "";
+    private ElementReference messageContainer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthState.GetAuthenticationStateAsync();
+        var currentUserId = authState.User.FindFirst("sub")?.Value;
+
+        var teacher = await TeacherApi.GetTeacherAsync(RecipientId);
+        recipientName = teacher?.DisplayName ?? RecipientId;
+
+        messages = await ChatApi.GetMessagesAsync(RecipientId);
+        if (currentUserId is not null)
+        {
+            foreach (var msg in messages)
+                msg.IsOwn = msg.SenderId == currentUserId;
+        }
+
+        HubService.OnMessageReceived += OnMessageReceived;
+        await HubService.ConnectAsync();
+        await ChatApi.MarkReadAsync(RecipientId);
+    }
+
+    private void OnMessageReceived(MessageResponse msg)
+    {
+        if (msg.SenderId == RecipientId || msg.RecipientId == RecipientId)
+        {
+            messages.Add(msg);
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task SendAsync()
+    {
+        if (string.IsNullOrWhiteSpace(inputText)) return;
+        var content = inputText;
+        inputText = "";
+        await HubService.SendMessageAsync(RecipientId, content);
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+            await SendAsync();
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        HubService.OnMessageReceived -= OnMessageReceived;
+        return ValueTask.CompletedTask;
+    }
+}

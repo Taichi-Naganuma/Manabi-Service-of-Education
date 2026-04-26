@@ -1,0 +1,108 @@
+@page "/teachers"
+@attribute [Authorize]
+@inject TeacherApiService TeacherApi
+@inject NavigationManager Nav
+
+<PageTitle>先生を探す — まなび</PageTitle>
+
+<h2 class="mb-4">先生を探す</h2>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <input class="form-control" placeholder="スキルで検索 (例: Python)" @bind="skillFilter" @bind:event="oninput" />
+    </div>
+    <div class="col-md-3">
+        <select class="form-select" @bind="sortBy">
+            <option value="">並び替え</option>
+            <option value="rating">評価順</option>
+            <option value="rate">料金順</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-primary w-100" @onclick="SearchAsync">検索</button>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <p>読み込み中...</p>
+}
+else if (teachers.Count == 0)
+{
+    <div class="text-center mt-5 text-muted">
+        <p>先生が見つかりませんでした。</p>
+    </div>
+}
+else
+{
+    <div class="row g-4">
+        @foreach (var teacher in teachers)
+        {
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            @if (teacher.AvatarUrl is not null)
+                            {
+                                <img src="@teacher.AvatarUrl" class="rounded-circle me-2" width="48" height="48" alt="avatar" />
+                            }
+                            else
+                            {
+                                <div class="rounded-circle bg-secondary me-2 d-flex align-items-center justify-content-center text-white fw-bold"
+                                     style="width:48px;height:48px">
+                                    @teacher.DisplayName[..1]
+                                </div>
+                            }
+                            <div>
+                                <h5 class="mb-0">@teacher.DisplayName</h5>
+                                @if (teacher.AverageRating > 0)
+                                {
+                                    <small class="text-warning">★ @teacher.AverageRating.ToString("F1") (@(teacher.TotalReviews)件)</small>
+                                }
+                            </div>
+                        </div>
+
+                        <p class="card-text text-truncate">@teacher.Bio</p>
+
+                        @if (teacher.Skills.Count > 0)
+                        {
+                            <div class="mb-2">
+                                @foreach (var skill in teacher.Skills.Take(3))
+                                {
+                                    <span class="badge bg-light text-dark me-1 border">@skill</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <div class="card-footer d-flex justify-content-between align-items-center">
+                        <small class="text-muted">30分 ¥@teacher.Rate30Min.ToString("N0")</small>
+                        <button class="btn btn-sm btn-outline-primary"
+                                @onclick="() => GoToTeacher(teacher.UserId)">
+                            詳細を見る
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<TeacherProfileResponse> teachers = [];
+    private bool isLoading = true;
+    private string skillFilter = "";
+    private string sortBy = "";
+
+    protected override async Task OnInitializedAsync() => await SearchAsync();
+
+    private async Task SearchAsync()
+    {
+        isLoading = true;
+        teachers = await TeacherApi.GetTeachersAsync(
+            skill: string.IsNullOrEmpty(skillFilter) ? null : skillFilter,
+            sortBy: string.IsNullOrEmpty(sortBy) ? null : sortBy);
+        isLoading = false;
+    }
+
+    private void GoToTeacher(string userId) => Nav.NavigateTo("/teachers/" + userId);
+}

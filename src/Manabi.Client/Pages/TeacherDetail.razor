@@ -1,0 +1,90 @@
+@page "/teachers/{UserId}"
+@attribute [Authorize]
+@inject TeacherApiService TeacherApi
+@inject NavigationManager Nav
+
+<PageTitle>@(teacher?.DisplayName ?? "先生の詳細") — まなび</PageTitle>
+
+@if (isLoading)
+{
+    <p>読み込み中...</p>
+}
+else if (teacher is null)
+{
+    <p class="text-danger">先生が見つかりませんでした。</p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body text-center">
+                    @if (teacher.AvatarUrl is not null)
+                    {
+                        <img src="@teacher.AvatarUrl" class="rounded-circle mb-3" width="96" height="96" alt="avatar" />
+                    }
+                    else
+                    {
+                        <div class="rounded-circle bg-secondary mx-auto mb-3 d-flex align-items-center justify-content-center text-white fw-bold"
+                             style="width:96px;height:96px;font-size:2rem">
+                            @teacher.DisplayName[..1]
+                        </div>
+                    }
+                    <h4>@teacher.DisplayName</h4>
+                    @if (teacher.AverageRating > 0)
+                    {
+                        <p class="text-warning mb-1">★ @teacher.AverageRating.ToString("F1") (@(teacher.TotalReviews)件のレビュー)</p>
+                    }
+                    <p class="text-muted small">@teacher.Bio</p>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">30分</span>
+                        <strong>¥@teacher.Rate30Min.ToString("N0")</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">60分</span>
+                        <strong>¥@teacher.Rate60Min.ToString("N0")</strong>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary w-100"
+                    @onclick="GoToChat">
+                メッセージを送る
+            </button>
+        </div>
+
+        <div class="col-md-8">
+            <h5 class="mb-3">スキル</h5>
+            @if (teacher.Skills.Count > 0)
+            {
+                <div class="mb-4">
+                    @foreach (var skill in teacher.Skills)
+                    {
+                        <span class="badge bg-primary me-1 mb-1 fs-6">@skill</span>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-muted">スキルが登録されていません。</p>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string UserId { get; set; } = "";
+
+    private TeacherProfileResponse? teacher;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        teacher = await TeacherApi.GetTeacherAsync(UserId);
+        isLoading = false;
+    }
+
+    private void GoToChat() => Nav.NavigateTo("/chat/" + UserId);
+}

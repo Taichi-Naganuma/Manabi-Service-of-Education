@@ -1,0 +1,64 @@
+@page "/login"
+@inject AuthService AuthService
+@inject NavigationManager Nav
+
+<PageTitle>ログイン — まなび</PageTitle>
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4">
+        <h2 class="mb-4">ログイン</h2>
+
+        <EditForm Model="model" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+
+            <div class="mb-3">
+                <label class="form-label">メールアドレス</label>
+                <InputText class="form-control" @bind-Value="model.Email" />
+                <ValidationMessage For="() => model.Email" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">パスワード</label>
+                <InputText type="password" class="form-control" @bind-Value="model.Password" />
+                <ValidationMessage For="() => model.Password" />
+            </div>
+
+            @if (errorMessage is not null)
+            {
+                <div class="alert alert-danger">@errorMessage</div>
+            }
+
+            <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
+                @(isLoading ? "ログイン中..." : "ログイン")
+            </button>
+        </EditForm>
+
+        <p class="mt-3 text-center">
+            アカウントをお持ちでない方は <a href="/register">新規登録</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private readonly LoginRequest model = new();
+    private string? errorMessage;
+    private bool isLoading;
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        var result = await AuthService.LoginAsync(model);
+        if (result is null)
+        {
+            errorMessage = "メールアドレスまたはパスワードが正しくありません。";
+        }
+        else
+        {
+            Nav.NavigateTo("/teachers");
+        }
+
+        isLoading = false;
+    }
+}
