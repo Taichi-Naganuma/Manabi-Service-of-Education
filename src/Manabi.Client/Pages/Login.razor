@@ -2,7 +2,7 @@
 @inject AuthService AuthService
 @inject NavigationManager Nav
 
-<PageTitle>ログイン — まなび</PageTitle>
+<PageTitle>ログイン — Manabi</PageTitle>
 
 <div class="row justify-content-center mt-5">
     <div class="col-md-4">
@@ -49,15 +49,11 @@
         isLoading = true;
         errorMessage = null;
 
-        var result = await AuthService.LoginAsync(model);
-        if (result is null)
-        {
-            errorMessage = "メールアドレスまたはパスワードが正しくありません。";
-        }
+        var (auth, error) = await AuthService.LoginAsync(model);
+        if (auth is null)
+            errorMessage = error ?? "ログインに失敗しました。";
         else
-        {
             Nav.NavigateTo("/teachers");
-        }
 
         isLoading = false;
     }
