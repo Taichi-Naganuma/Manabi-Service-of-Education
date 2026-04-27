@@ -63,10 +63,14 @@ builder.Services.AddControllers();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowClient", policy =>
-        policy.WithOrigins(builder.Configuration["ClientUrl"] ?? "https://localhost:7001")
+    {
+        var origins = (builder.Configuration["ClientUrl"] ?? "http://localhost:5048")
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        policy.WithOrigins(origins)
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials());
+              .AllowCredentials();
+    });
 });
 
 var app = builder.Build();
