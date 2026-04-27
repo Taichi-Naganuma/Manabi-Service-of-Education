@@ -33,6 +33,16 @@ public class TeachersController(TeacherService teacherService) : ControllerBase
         return Ok(profile);
     }
 
+    // GET /api/teachers/profile/me  （自分の先生プロフィール取得）
+    [Authorize]
+    [HttpGet("profile/me")]
+    public async Task<ActionResult<TeacherProfileResponse>> GetMyProfile()
+    {
+        var profile = await teacherService.GetByUserIdAsync(CurrentUserId);
+        if (profile is null) return NotFound();
+        return Ok(profile);
+    }
+
     // POST /api/teachers/profile  （先生プロフィール新規作成）
     [Authorize]
     [HttpPost("profile")]
