@@ -12,28 +12,42 @@ public class AuthService(HttpClient http, IJSRuntime js, ManabiAuthStateProvider
 
     public async Task<AuthResponse?> LoginAsync(LoginRequest request)
     {
-        var response = await http.PostAsJsonAsync("/api/auth/login", request);
-        if (!response.IsSuccessStatusCode) return null;
+        try
+        {
+            var response = await http.PostAsJsonAsync("/api/auth/login", request);
+            if (!response.IsSuccessStatusCode) return null;
 
-        var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
-        if (auth is null) return null;
+            var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
+            if (auth is null) return null;
 
-        await js.InvokeVoidAsync("localStorage.setItem", TokenKey, auth.Token);
-        await authStateProvider.NotifyAuthChangedAsync();
-        return auth;
+            await js.InvokeVoidAsync("localStorage.setItem", TokenKey, auth.Token);
+            await authStateProvider.NotifyAuthChangedAsync();
+            return auth;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public async Task<AuthResponse?> RegisterAsync(RegisterRequest request)
     {
-        var response = await http.PostAsJsonAsync("/api/auth/register", request);
-        if (!response.IsSuccessStatusCode) return null;
+        try
+        {
+            var response = await http.PostAsJsonAsync("/api/auth/register", request);
+            if (!response.IsSuccessStatusCode) return null;
 
-        var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
-        if (auth is null) return null;
+            var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
+            if (auth is null) return null;
 
-        await js.InvokeVoidAsync("localStorage.setItem", TokenKey, auth.Token);
-        await authStateProvider.NotifyAuthChangedAsync();
-        return auth;
+            await js.InvokeVoidAsync("localStorage.setItem", TokenKey, auth.Token);
+            await authStateProvider.NotifyAuthChangedAsync();
+            return auth;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public async Task LogoutAsync()

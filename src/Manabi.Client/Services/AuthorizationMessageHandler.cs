@@ -9,7 +9,7 @@ public class AuthorizationMessageHandler(IJSRuntime js) : DelegatingHandler
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        var token = await js.InvokeAsync<string?>("localStorage.getItem", TokenKey, cancellationToken);
+        var token = await js.InvokeAsync<string?>("localStorage.getItem", cancellationToken, TokenKey);
         if (!string.IsNullOrEmpty(token))
             request.Headers.Authorization = new("Bearer", token);
 
