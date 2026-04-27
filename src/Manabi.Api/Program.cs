@@ -82,10 +82,18 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+}
+
+app.UseStaticFiles();
 app.UseCors("AllowClient");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
+app.MapFallbackToFile("index.html");
 
 app.Run();

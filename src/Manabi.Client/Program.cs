@@ -8,7 +8,7 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7119";
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? builder.HostEnvironment.BaseAddress;
 
 builder.Services.AddScoped<ManabiAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(
