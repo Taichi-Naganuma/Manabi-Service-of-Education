@@ -14,8 +14,8 @@ else if (!hasProfile)
 {
     <div class="card shadow-sm">
         <div class="card-body">
-            <h5 class="card-title mb-3">先生プロフィールを作成</h5>
-            <p class="text-muted">プロフィールを作成すると生徒から連絡が届くようになります。</p>
+            <h5 class="card-title mb-3">スキルプロフィールを作成</h5>
+            <p class="text-muted">スキルと料金を登録すると、メンバー一覧に表示されるようになります。</p>
 
             <EditForm Model="createModel" OnValidSubmit="CreateProfileAsync">
                 <DataAnnotationsValidator />
@@ -48,7 +48,7 @@ else
 {
     <div class="card shadow-sm">
         <div class="card-body">
-            <h5 class="card-title mb-3">プロフィール編集</h5>
+            <h5 class="card-title mb-3">スキルプロフィール編集</h5>
 
             <EditForm Model="updateModel" OnValidSubmit="UpdateProfileAsync">
                 <DataAnnotationsValidator />

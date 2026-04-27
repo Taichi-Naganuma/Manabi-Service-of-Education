@@ -3,14 +3,15 @@
 @implements IAsyncDisposable
 @inject ChatApiService ChatApi
 @inject ChatHubService HubService
-@inject TeacherApiService TeacherApi
+@inject UserApiService UserApi
 @inject AuthenticationStateProvider AuthState
+@inject IJSRuntime JS
 
 <PageTitle>チャット — Manabi</PageTitle>
 
 <div class="d-flex flex-column" style="height: calc(100vh - 120px)">
-    <div class="border-bottom pb-2 mb-2">
-        <strong>@recipientName</strong>
+    <div class="border-bottom pb-2 mb-2 d-flex align-items-center gap-2">
+        <a href="/users/@RecipientId" class="text-decoration-none text-dark fw-bold">@recipientName</a>
     </div>
 
     <div class="flex-grow-1 overflow-auto mb-2" @ref="messageContainer">
@@ -51,8 +52,8 @@
         var authState = await AuthState.GetAuthenticationStateAsync();
         var currentUserId = authState.User.FindFirst("sub")?.Value;
 
-        var teacher = await TeacherApi.GetTeacherAsync(RecipientId);
-        recipientName = teacher?.DisplayName ?? RecipientId;
+        var user = await UserApi.GetUserAsync(RecipientId);
+        recipientName = user?.DisplayName ?? RecipientId;
 
         messages = await ChatApi.GetMessagesAsync(RecipientId);
         if (currentUserId is not null)
@@ -66,12 +67,21 @@
         await ChatApi.MarkReadAsync(RecipientId);
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await ScrollToBottomAsync();
+    }
+
     private void OnMessageReceived(MessageResponse msg)
     {
         if (msg.SenderId == RecipientId || msg.RecipientId == RecipientId)
         {
             messages.Add(msg);
-            InvokeAsync(StateHasChanged);
+            InvokeAsync(async () =>
+            {
+                StateHasChanged();
+                await ScrollToBottomAsync();
+            });
         }
     }
 
@@ -87,6 +97,15 @@
     {
         if (e.Key == "Enter" && !e.ShiftKey)
             await SendAsync();
+    }
+
+    private async Task ScrollToBottomAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("scrollToBottom", messageContainer);
+        }
+        catch { }
     }
 
     public ValueTask DisposeAsync()

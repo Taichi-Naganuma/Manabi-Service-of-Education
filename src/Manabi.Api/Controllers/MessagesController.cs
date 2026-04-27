@@ -13,6 +13,14 @@ public class MessagesController(ChatService chatService) : ControllerBase
     private string CurrentUserId => User.FindFirst("sub")?.Value
         ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value;
 
+    // GET /api/messages/conversations
+    [HttpGet("conversations")]
+    public async Task<ActionResult<List<ConversationResponse>>> GetConversations()
+    {
+        var conversations = await chatService.GetConversationsAsync(CurrentUserId);
+        return Ok(conversations);
+    }
+
     // GET /api/messages/{otherUserId}?skip=0&take=50
     [HttpGet("{otherUserId}")]
     public async Task<ActionResult<List<MessageResponse>>> GetConversation(

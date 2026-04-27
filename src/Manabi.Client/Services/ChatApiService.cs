@@ -5,6 +5,9 @@ namespace Manabi.Client.Services;
 
 public class ChatApiService(HttpClient http)
 {
+    public async Task<List<ConversationResponse>> GetConversationsAsync()
+        => await http.GetFromJsonAsync<List<ConversationResponse>>("/api/messages/conversations") ?? [];
+
     public async Task<List<MessageResponse>> GetMessagesAsync(string otherUserId)
         => await http.GetFromJsonAsync<List<MessageResponse>>($"/api/messages/{otherUserId}") ?? [];
 

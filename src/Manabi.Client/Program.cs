@@ -27,6 +27,7 @@ builder.Services.AddScoped(sp =>
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<TeacherApiService>();
 builder.Services.AddScoped<ChatApiService>();
+builder.Services.AddScoped<UserApiService>();
 builder.Services.AddScoped<ChatHubService>();
 
 await builder.Build().RunAsync();

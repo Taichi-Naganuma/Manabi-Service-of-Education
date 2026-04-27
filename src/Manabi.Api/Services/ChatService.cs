@@ -47,6 +47,34 @@ public class ChatService(AppDbContext db)
             .ExecuteUpdateAsync(s => s.SetProperty(m => m.IsRead, true));
     }
 
+    public async Task<List<ConversationResponse>> GetConversationsAsync(string userId)
+    {
+        var messages = await db.DirectMessages
+            .Include(m => m.Sender)
+            .Include(m => m.Recipient)
+            .Where(m => m.SenderId == userId || m.RecipientId == userId)
+            .ToListAsync();
+
+        return messages
+            .GroupBy(m => m.SenderId == userId ? m.RecipientId : m.SenderId)
+            .Select(g =>
+            {
+                var last = g.OrderByDescending(m => m.SentAt).First();
+                var otherUser = g.Key == last.SenderId ? last.Sender : last.Recipient;
+                return new ConversationResponse
+                {
+                    OtherUserId = g.Key,
+                    OtherUserDisplayName = otherUser.DisplayName,
+                    OtherUserAvatarUrl = otherUser.AvatarUrl,
+                    LastMessage = last.Content,
+                    LastMessageAt = last.SentAt,
+                    UnreadCount = g.Count(m => m.SenderId == g.Key && m.RecipientId == userId && !m.IsRead)
+                };
+            })
+            .OrderByDescending(c => c.LastMessageAt)
+            .ToList();
+    }
+
     private static MessageResponse ToResponse(DirectMessage m, string currentUserId) => new()
     {
         Id = m.Id,
