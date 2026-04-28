@@ -11,8 +11,24 @@ using Manabi.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var connectionString =
+    builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? BuildConnectionStringFromEnv();
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
+
+static string BuildConnectionStringFromEnv()
+{
+    var host = Environment.GetEnvironmentVariable("PGHOST");
+    var port = Environment.GetEnvironmentVariable("PGPORT") ?? "5432";
+    var db   = Environment.GetEnvironmentVariable("PGDATABASE");
+    var user = Environment.GetEnvironmentVariable("PGUSER");
+    var pass = Environment.GetEnvironmentVariable("PGPASSWORD");
+    if (host is null || db is null || user is null || pass is null)
+        throw new InvalidOperationException("DB接続情報が設定されていません。ConnectionStrings__DefaultConnection または PG* 環境変数を設定してください。");
+    return $"Host={host};Port={port};Database={db};Username={user};Password={pass};SSL Mode=Require;Trust Server Certificate=true";
+}
 
 builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
 {
