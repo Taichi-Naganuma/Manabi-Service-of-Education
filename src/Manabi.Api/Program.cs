@@ -28,7 +28,7 @@ static string BuildConnectionStringFromEnv()
     var pass = Environment.GetEnvironmentVariable("PGPASSWORD");
     if (host is null || db is null || user is null || pass is null)
         throw new InvalidOperationException("DB接続情報が設定されていません。ConnectionStrings__DefaultConnection または PG* 環境変数を設定してください。");
-    return $"Host={host};Port={port};Database={db};Username={user};Password={pass};SSL Mode=Require;Trust Server Certificate=true";
+    return $"Host={host};Port={port};Database={db};Username={user};Password={pass}";
 }
 
 builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
