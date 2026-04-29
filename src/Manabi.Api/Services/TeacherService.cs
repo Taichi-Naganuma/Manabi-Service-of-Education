@@ -50,11 +50,19 @@ public class TeacherService(AppDbContext db)
         {
             UserId = userId,
             Skills = req.Skills,
+            Categories = req.Categories,
             Rate30Min = req.Rate30Min,
             Rate60Min = req.Rate60Min
         };
 
         db.TeacherProfiles.Add(profile);
+
+        if (!string.IsNullOrWhiteSpace(req.Bio))
+        {
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user is not null) user.Bio = req.Bio;
+        }
+
         await db.SaveChangesAsync();
 
         await db.Entry(profile).Reference(t => t.User).LoadAsync();
@@ -72,8 +80,10 @@ public class TeacherService(AppDbContext db)
             return (null, "先生プロフィールが見つかりません。");
 
         if (req.Skills is not null) profile.Skills = req.Skills;
+        if (req.Categories is not null) profile.Categories = req.Categories;
         if (req.Rate30Min.HasValue) profile.Rate30Min = req.Rate30Min.Value;
         if (req.Rate60Min.HasValue) profile.Rate60Min = req.Rate60Min.Value;
+        if (req.Bio is not null) profile.User.Bio = req.Bio;
 
         await db.SaveChangesAsync();
         return (ToResponse(profile), null);
@@ -86,6 +96,7 @@ public class TeacherService(AppDbContext db)
         Bio = t.User.Bio,
         AvatarUrl = t.User.AvatarUrl,
         Skills = t.Skills,
+        Categories = t.Categories,
         Rate30Min = t.Rate30Min,
         Rate60Min = t.Rate60Min,
         AverageRating = t.AverageRating,

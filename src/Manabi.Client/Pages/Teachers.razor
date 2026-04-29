@@ -9,14 +9,13 @@
 <h2 class="mb-4">メンバーを探す</h2>
 
 <div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <input class="form-control" placeholder="スキルで検索 (例: Python)" @bind="skillFilter" @bind:event="oninput" />
+    <div class="col-md-5">
+        <input class="form-control" placeholder="経験・テーマで検索 (例: 起業, 失恋)" @bind="skillFilter" @bind:event="oninput" />
     </div>
     <div class="col-md-3">
         <select class="form-select" @bind="sortBy">
             <option value="">並び替え</option>
             <option value="rating">評価順</option>
-            <option value="rate">料金順</option>
         </select>
     </div>
     <div class="col-md-2">
@@ -31,7 +30,7 @@
 else if (members.Count == 0)
 {
     <div class="text-center mt-5 text-muted">
-        <p>スキルを登録しているメンバーがまだいません。</p>
+        <p>まだメンバーが登録されていません。</p>
     </div>
 }
 else
@@ -65,7 +64,17 @@ else
 
                         @if (!string.IsNullOrEmpty(member.Bio))
                         {
-                            <p class="card-text text-truncate text-muted small">@member.Bio</p>
+                            <p class="card-text text-muted small" style="display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">@member.Bio</p>
+                        }
+
+                        @if (member.Categories.Count > 0)
+                        {
+                            <div class="mb-2">
+                                @foreach (var cat in member.Categories.Take(4))
+                                {
+                                    <span class="badge bg-primary-subtle text-primary-emphasis me-1">@cat</span>
+                                }
+                            </div>
                         }
 
                         @if (member.Skills.Count > 0)
@@ -78,8 +87,7 @@ else
                             </div>
                         }
                     </div>
-                    <div class="card-footer d-flex justify-content-between align-items-center">
-                        <small class="text-muted">30分 ¥@member.Rate30Min.ToString("N0")</small>
+                    <div class="card-footer text-end">
                         <button class="btn btn-sm btn-outline-primary"
                                 @onclick="() => GoToProfile(member.UserId)">
                             プロフィールを見る

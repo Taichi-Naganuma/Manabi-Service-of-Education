@@ -10,62 +10,47 @@
 {
     <p>読み込み中...</p>
 }
-else if (!hasProfile)
-{
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <h5 class="card-title mb-3">スキルプロフィールを作成</h5>
-            <p class="text-muted">スキルと料金を登録すると、メンバー一覧に表示されるようになります。</p>
-
-            <EditForm Model="createModel" OnValidSubmit="CreateProfileAsync">
-                <DataAnnotationsValidator />
-                <div class="row g-3 mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">30分レート (円)</label>
-                        <InputNumber class="form-control" @bind-Value="createModel.Rate30Min" />
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">60分レート (円)</label>
-                        <InputNumber class="form-control" @bind-Value="createModel.Rate60Min" />
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">スキル（カンマ区切り）</label>
-                    <InputText class="form-control" placeholder="Python, Django, SQL" @bind-Value="skillsInput" />
-                </div>
-                @if (errorMessage is not null)
-                {
-                    <div class="alert alert-danger">@errorMessage</div>
-                }
-                <button type="submit" class="btn btn-primary" disabled="@isSaving">
-                    @(isSaving ? "保存中..." : "プロフィールを作成")
-                </button>
-            </EditForm>
-        </div>
-    </div>
-}
 else
 {
     <div class="card shadow-sm">
         <div class="card-body">
-            <h5 class="card-title mb-3">スキルプロフィール編集</h5>
+            <h5 class="card-title mb-3">@(hasProfile ? "プロフィール編集" : "プロフィールを作成")</h5>
+            @if (!hasProfile)
+            {
+                <p class="text-muted">あなたの経験を登録すると、メンバー一覧に表示されるようになります。</p>
+            }
 
-            <EditForm Model="updateModel" OnValidSubmit="UpdateProfileAsync">
+            <EditForm Model="model" OnValidSubmit="SubmitAsync">
                 <DataAnnotationsValidator />
-                <div class="row g-3 mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">30分レート (円)</label>
-                        <InputNumber class="form-control" TValue="int?" @bind-Value="updateModel.Rate30Min" />
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">60分レート (円)</label>
-                        <InputNumber class="form-control" TValue="int?" @bind-Value="updateModel.Rate60Min" />
-                    </div>
-                </div>
+
                 <div class="mb-3">
-                    <label class="form-label">スキル（カンマ区切り）</label>
-                    <InputText class="form-control" placeholder="Python, Django, SQL" @bind-Value="skillsInput" />
+                    <label class="form-label fw-bold">自己紹介・話せる経験</label>
+                    <div class="form-text mb-2">あなたが経験してきたこと、誰かに話したい思い、伝えられる気づきを自由に書いてください。</div>
+                    <InputTextArea class="form-control" rows="5" @bind-Value="bioInput"
+                                   placeholder="例：30歳で起業して2年で挫折しました。その失敗の中で気づいたこと、また同じ道を選ぶ人に伝えたいことがあります。" />
                 </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">話せるテーマ（カンマ区切り）</label>
+                    <div class="form-text mb-2">具体的な経験のキーワード。検索で見つけてもらいやすくなります。</div>
+                    <InputText class="form-control" placeholder="例：起業, 失恋, 持病との向き合い方, 転職" @bind-Value="skillsInput" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">カテゴリー（複数選択可）</label>
+                    <div>
+                        @foreach (var cat in AvailableCategories)
+                        {
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="cat-@cat"
+                                       checked="@selectedCategories.Contains(cat)"
+                                       @onchange="e => ToggleCategory(cat, (bool)e.Value!)" />
+                                <label class="form-check-label" for="cat-@cat">@cat</label>
+                            </div>
+                        }
+                    </div>
+                </div>
+
                 @if (errorMessage is not null)
                 {
                     <div class="alert alert-danger">@errorMessage</div>
@@ -83,15 +68,21 @@ else
 }
 
 @code {
+    private static readonly string[] AvailableCategories =
+    {
+        "恋愛", "人間関係", "仕事", "起業", "健康", "家族", "学び", "日常"
+    };
+
     private bool isLoading = true;
     private bool hasProfile = false;
     private bool isSaving = false;
     private string? successMessage;
     private string? errorMessage;
     private string skillsInput = "";
+    private string bioInput = "";
+    private HashSet<string> selectedCategories = new();
 
-    private readonly CreateTeacherProfileRequest createModel = new();
-    private readonly UpdateTeacherProfileRequest updateModel = new();
+    private readonly UpdateTeacherProfileRequest model = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -99,48 +90,57 @@ else
         if (profile is not null)
         {
             hasProfile = true;
-            updateModel.Rate30Min = profile.Rate30Min;
-            updateModel.Rate60Min = profile.Rate60Min;
-            updateModel.Skills = profile.Skills;
+            bioInput = profile.Bio;
             skillsInput = string.Join(", ", profile.Skills);
+            selectedCategories = new HashSet<string>(profile.Categories);
         }
         isLoading = false;
     }
 
-    private async Task CreateProfileAsync()
+    private void ToggleCategory(string cat, bool isChecked)
     {
-        isSaving = true;
-        errorMessage = null;
-        createModel.Skills = skillsInput
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .ToList();
-        var ok = await TeacherApi.CreateProfileAsync(createModel);
-        if (ok)
-        {
-            hasProfile = true;
-            updateModel.Rate30Min = createModel.Rate30Min;
-            updateModel.Rate60Min = createModel.Rate60Min;
-            updateModel.Skills = createModel.Skills;
-            successMessage = "プロフィールを作成しました。";
-        }
-        else
-        {
-            errorMessage = "作成に失敗しました。";
-        }
-        isSaving = false;
+        if (isChecked) selectedCategories.Add(cat);
+        else selectedCategories.Remove(cat);
     }
 
-    private async Task UpdateProfileAsync()
+    private async Task SubmitAsync()
     {
         isSaving = true;
         errorMessage = null;
         successMessage = null;
-        updateModel.Skills = skillsInput
+
+        var skills = skillsInput
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToList();
-        var ok = await TeacherApi.UpdateProfileAsync(updateModel);
-        if (ok) successMessage = "保存しました。";
-        else errorMessage = "保存に失敗しました。";
+
+        if (hasProfile)
+        {
+            model.Skills = skills;
+            model.Categories = selectedCategories.ToList();
+            model.Bio = bioInput;
+            var ok = await TeacherApi.UpdateProfileAsync(model);
+            if (ok) successMessage = "保存しました。";
+            else errorMessage = "保存に失敗しました。";
+        }
+        else
+        {
+            var createReq = new CreateTeacherProfileRequest
+            {
+                Skills = skills.Count > 0 ? skills : new List<string> { "経験" },
+                Categories = selectedCategories.ToList(),
+                Bio = bioInput
+            };
+            var ok = await TeacherApi.CreateProfileAsync(createReq);
+            if (ok)
+            {
+                hasProfile = true;
+                successMessage = "プロフィールを作成しました。";
+            }
+            else
+            {
+                errorMessage = "作成に失敗しました。";
+            }
+        }
         isSaving = false;
     }
 }

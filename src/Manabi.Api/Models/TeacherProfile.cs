@@ -7,8 +7,9 @@ public class TeacherProfile
     public AppUser User { get; set; } = null!;
 
     public List<string> Skills { get; set; } = [];
-    public int Rate30Min { get; set; }
-    public int Rate60Min { get; set; }
+    public List<string> Categories { get; set; } = [];
+    public int? Rate30Min { get; set; }
+    public int? Rate60Min { get; set; }
     public double AverageRating { get; set; }
     public int TotalReviews { get; set; }
 }

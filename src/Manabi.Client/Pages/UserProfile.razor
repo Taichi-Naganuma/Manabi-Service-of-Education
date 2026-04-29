@@ -24,25 +24,7 @@ else
                         @profile.DisplayName[..1]
                     </div>
                     <h4>@profile.DisplayName</h4>
-                    @if (!string.IsNullOrEmpty(profile.Bio))
-                    {
-                        <p class="text-muted small">@profile.Bio</p>
-                    }
                 </div>
-
-                @if (profile.IsTeacher && profile.Rate30Min.HasValue)
-                {
-                    <div class="card-footer">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="text-muted small">30分</span>
-                            <strong>¥@profile.Rate30Min.Value.ToString("N0")</strong>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted small">60分</span>
-                            <strong>¥@(profile.Rate60Min?.ToString("N0") ?? "—")</strong>
-                        </div>
-                    </div>
-                }
             </div>
 
             <button class="btn btn-primary w-100"
@@ -52,13 +34,30 @@ else
         </div>
 
         <div class="col-md-8">
+            @if (!string.IsNullOrEmpty(profile.Bio))
+            {
+                <h5 class="mb-3">自己紹介・話せる経験</h5>
+                <p class="mb-4" style="white-space: pre-wrap">@profile.Bio</p>
+            }
+
+            @if (profile.Categories is { Count: > 0 })
+            {
+                <h6 class="mb-2">カテゴリー</h6>
+                <div class="mb-4">
+                    @foreach (var cat in profile.Categories)
+                    {
+                        <span class="badge bg-primary me-1 mb-1 fs-6">@cat</span>
+                    }
+                </div>
+            }
+
             @if (profile.Skills is { Count: > 0 })
             {
-                <h5 class="mb-3">スキル</h5>
+                <h6 class="mb-2">話せるテーマ</h6>
                 <div class="mb-4">
                     @foreach (var skill in profile.Skills)
                     {
-                        <span class="badge bg-primary me-1 mb-1 fs-6">@skill</span>
+                        <span class="badge bg-light text-dark me-1 mb-1 border fs-6">@skill</span>
                     }
                 </div>
             }

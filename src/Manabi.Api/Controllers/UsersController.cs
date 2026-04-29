@@ -28,6 +28,7 @@ public class UsersController(UserManager<AppUser> userManager, AppDbContext db) 
             AvatarUrl = user.AvatarUrl,
             IsTeacher = teacherProfile is not null,
             Skills = teacherProfile?.Skills,
+            Categories = teacherProfile?.Categories,
             Rate30Min = teacherProfile?.Rate30Min,
             Rate60Min = teacherProfile?.Rate60Min,
             AverageRating = teacherProfile?.AverageRating,
