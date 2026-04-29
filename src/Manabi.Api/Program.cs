@@ -11,10 +11,11 @@ using Manabi.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = Environment.GetEnvironmentVariable("PGHOST") is not null
-    ? BuildConnectionStringFromEnv()
-    : builder.Configuration.GetConnectionString("DefaultConnection")
-      ?? throw new InvalidOperationException("DB接続情報が未設定です。");
+var connectionString =
+    Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+    ?? (Environment.GetEnvironmentVariable("PGHOST") is not null ? BuildConnectionStringFromEnv() : null)
+    ?? builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("DB接続情報が未設定です。");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
