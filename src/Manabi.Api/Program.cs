@@ -106,6 +106,7 @@ using (var scope = app.Services.CreateScope())
     await db.Database.MigrateAsync();
 }
 
+app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 app.UseCors("AllowClient");
 app.UseAuthentication();
