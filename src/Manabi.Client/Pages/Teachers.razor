@@ -3,6 +3,7 @@
 @attribute [Authorize]
 @inject TeacherApiService TeacherApi
 @inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthState
 
 <PageTitle>@(string.IsNullOrEmpty(CategoryFilter) ? "メンバーを探す" : CategoryFilter) — Mananect</PageTitle>
 
@@ -115,7 +116,10 @@ else
     public string? CategoryFilter { get; set; }
 
     private List<TeacherProfileResponse> members = [];
+    private string? currentUserId;
+
     private List<TeacherProfileResponse> filteredMembers => members
+        .Where(m => m.UserId != currentUserId)
         .Where(m => string.IsNullOrEmpty(CategoryFilter) || m.Categories.Contains(CategoryFilter))
         .ToList();
 
@@ -123,7 +127,12 @@ else
     private string skillFilter = "";
     private string sortBy = "";
 
-    protected override async Task OnInitializedAsync() => await SearchAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthState.GetAuthenticationStateAsync();
+        currentUserId = authState.User.FindFirst("sub")?.Value;
+        await SearchAsync();
+    }
 
     private async Task SearchAsync()
     {

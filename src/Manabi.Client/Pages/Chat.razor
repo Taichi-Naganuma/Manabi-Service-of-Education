@@ -68,7 +68,7 @@
         await HubService.ConnectAsync();
         await ChatApi.MarkReadAsync(RecipientId);
 
-        if (!string.IsNullOrEmpty(InitialMessage))
+        if (!string.IsNullOrEmpty(InitialMessage) && messages.Count == 0)
         {
             inputText = InitialMessage;
             await SendAsync();
