@@ -1,0 +1,57 @@
+@page "/onboarding"
+@attribute [Authorize]
+@inject NavigationManager Nav
+
+<PageTitle>はじめに — Mananect</PageTitle>
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-7 text-center">
+        <h2 class="mb-2">Mananectへようこそ</h2>
+        <p class="text-muted mb-5">あなたはどちらとして使いますか？<br />あとからプロフィールで変更できます。</p>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm border-primary" style="cursor:pointer" @onclick="GoAsSpeaker">
+                    <div class="card-body py-4">
+                        <div class="fs-1 mb-3">🗣️</div>
+                        <h5 class="fw-bold">話したい</h5>
+                        <p class="text-muted small">自分の経験を誰かに話し、役立てたい</p>
+                        <span class="badge bg-primary">Speaker</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm border-success" style="cursor:pointer" @onclick="GoAsListener">
+                    <div class="card-body py-4">
+                        <div class="fs-1 mb-3">👂</div>
+                        <h5 class="fw-bold">聞きたい</h5>
+                        <p class="text-muted small">誰かの経験から学び、悩みのヒントを得たい</p>
+                        <span class="badge bg-success">Listener</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm border-secondary" style="cursor:pointer" @onclick="GoAsSpeaker">
+                    <div class="card-body py-4">
+                        <div class="fs-1 mb-3">🤝</div>
+                        <h5 class="fw-bold">両方</h5>
+                        <p class="text-muted small">話すことも聞くことも、どちらもやってみたい</p>
+                        <span class="badge bg-secondary">Speaker & Listener</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <p class="mt-5 text-muted small">
+            Speaker と Listener、どちらも対等な価値を持ちます。<br />
+            話す価値も、聞く価値も、Mananect では同じです。
+        </p>
+    </div>
+</div>
+
+@code {
+    private void GoAsSpeaker() => Nav.NavigateTo("/profile");
+    private void GoAsListener() => Nav.NavigateTo("/members");
+}

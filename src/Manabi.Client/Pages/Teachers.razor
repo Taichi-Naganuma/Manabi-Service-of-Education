@@ -32,9 +32,24 @@
 }
 else if (filteredMembers.Count == 0)
 {
-    <div class="text-center mt-5 text-muted">
-        <p>該当するメンバーが見つかりません。</p>
-    </div>
+    @if (members.Count == 0)
+    {
+        <div class="text-center mt-5">
+            <p class="display-6 mb-3">🌱</p>
+            <h4 class="mb-3">まだ誰もいません</h4>
+            <p class="text-muted mb-2">あなたが最初のSpeakerになりませんか？</p>
+            <p class="text-muted small mb-4">経験を登録すると、あなたの話を聞きたい人と出会えます。</p>
+            <a href="/profile" class="btn btn-primary">経験を登録する</a>
+        </div>
+    }
+    else
+    {
+        <div class="text-center mt-5 text-muted">
+            <p class="fs-5 mb-2">このカテゴリーの経験者がまだいません</p>
+            <p class="small mb-4">あなたがこの経験を持っているなら、最初の1人になれます。</p>
+            <a href="/profile" class="btn btn-outline-primary">経験を登録する</a>
+        </div>
+    }
 }
 else
 {
