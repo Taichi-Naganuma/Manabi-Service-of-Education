@@ -1,0 +1,78 @@
+@if (IsOpen)
+{
+    <div class="modal d-block" style="background-color: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@UserName さんの経験を聞く</h5>
+                    <button type="button" class="btn-close" @onclick="OnCancel"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">どのカテゴリーについて聞きたいですか？</label>
+                        <select class="form-select" @bind="selectedCategory">
+                            <option value="">選択してください（任意）</option>
+                            @foreach (var cat in categories)
+                            {
+                                <option value="@cat">@cat</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">聞きたいことを一言</label>
+                        <textarea class="form-control" rows="3" placeholder="例：起業の失敗経験を聞きたいです"
+                                  @bind="message"></textarea>
+                        <small class="form-text text-muted">相手に送る最初のメッセージになります</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="OnCancel">キャンセル</button>
+                    <button type="button" class="btn btn-primary" @onclick="OnSend" disabled="@(string.IsNullOrWhiteSpace(message))">
+                        セッションをリクエスト
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string UserId { get; set; } = "";
+    [Parameter] public string UserName { get; set; } = "";
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<(string category, string message)> OnSendAsync { get; set; }
+    [Parameter] public EventCallback OnCancelAsync { get; set; }
+
+    private static readonly string[] categories = new[]
+    {
+        "恋愛", "仕事", "起業", "健康", "人間関係", "家族", "学び", "日常"
+    };
+
+    private string selectedCategory = "";
+    private string message = "";
+
+    private async Task OnSend()
+    {
+        if (string.IsNullOrWhiteSpace(message)) return;
+
+        var text = string.IsNullOrEmpty(selectedCategory)
+            ? message
+            : $"[{selectedCategory}について] {message}";
+
+        await OnSendAsync.InvokeAsync((selectedCategory, text));
+        Reset();
+    }
+
+    private async Task OnCancel()
+    {
+        Reset();
+        await OnCancelAsync.InvokeAsync();
+    }
+
+    private void Reset()
+    {
+        selectedCategory = "";
+        message = "";
+    }
+}

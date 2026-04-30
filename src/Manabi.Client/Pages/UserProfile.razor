@@ -28,8 +28,8 @@ else
             </div>
 
             <button class="btn btn-primary w-100"
-                    @onclick="GoToChat">
-                メッセージを送る
+                    @onclick="OpenSessionModal">
+                この経験を聞く
             </button>
         </div>
 
@@ -70,11 +70,17 @@ else
     </div>
 }
 
+<SessionRequestModal UserId="@UserId" UserName="@(profile?.DisplayName ?? "")"
+                     IsOpen="@isModalOpen"
+                     OnSendAsync="@HandleSessionRequest"
+                     OnCancelAsync="@CloseSessionModal" />
+
 @code {
     [Parameter] public string UserId { get; set; } = "";
 
     private UserProfileResponse? profile;
     private bool isLoading = true;
+    private bool isModalOpen = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -82,5 +88,13 @@ else
         isLoading = false;
     }
 
-    private void GoToChat() => Nav.NavigateTo("/chat/" + UserId);
+    private void OpenSessionModal() => isModalOpen = true;
+    private void CloseSessionModal() => isModalOpen = false;
+
+    private async Task HandleSessionRequest((string category, string message) request)
+    {
+        CloseSessionModal();
+        var messageEncoded = Uri.EscapeDataString(request.message);
+        Nav.NavigateTo($"/chat/{UserId}?initialMessage={messageEncoded}");
+    }
 }

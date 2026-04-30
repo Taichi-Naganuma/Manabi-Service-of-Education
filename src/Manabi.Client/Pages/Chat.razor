@@ -41,12 +41,15 @@
 
 @code {
     [Parameter] public string RecipientId { get; set; } = "";
+    [SupplyParameterFromQuery]
+    public string? InitialMessage { get; set; }
 
     private List<MessageResponse> messages = [];
     private string inputText = "";
     private string recipientName = "";
     private string? currentUserId;
     private ElementReference messageContainer;
+    private bool isInitialized = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -66,11 +69,24 @@
         HubService.OnMessageReceived += OnMessageReceived;
         await HubService.ConnectAsync();
         await ChatApi.MarkReadAsync(RecipientId);
+
+        if (!string.IsNullOrEmpty(InitialMessage))
+        {
+            inputText = InitialMessage;
+        }
+
+        isInitialized = true;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await ScrollToBottomAsync();
+
+        if (firstRender && !string.IsNullOrEmpty(InitialMessage))
+        {
+            await Task.Delay(300);
+            await SendAsync();
+        }
     }
 
     private void OnMessageReceived(MessageResponse msg)

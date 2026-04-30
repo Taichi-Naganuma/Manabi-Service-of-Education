@@ -4,22 +4,24 @@
 @inject TeacherApiService TeacherApi
 @inject NavigationManager Nav
 
-<PageTitle>メンバーを探す — Mananect</PageTitle>
+<PageTitle>@(string.IsNullOrEmpty(CategoryFilter) ? "メンバーを探す" : CategoryFilter) — Mananect</PageTitle>
 
-<h2 class="mb-4">メンバーを探す</h2>
+<div class="mb-4">
+    <h2 class="mb-3">@(string.IsNullOrEmpty(CategoryFilter) ? "メンバーを探す" : $"{CategoryFilter}の経験を持つ人")</h2>
 
-<div class="row g-3 mb-4">
-    <div class="col-md-5">
-        <input class="form-control" placeholder="経験・テーマで検索 (例: 起業, 失恋)" @bind="skillFilter" @bind:event="oninput" />
-    </div>
-    <div class="col-md-3">
-        <select class="form-select" @bind="sortBy">
-            <option value="">並び替え</option>
-            <option value="rating">評価順</option>
-        </select>
-    </div>
-    <div class="col-md-2">
-        <button class="btn btn-primary w-100" @onclick="SearchAsync">検索</button>
+    <div class="row g-3 mb-4">
+        <div class="col-md-5">
+            <input class="form-control" placeholder="経験・テーマで検索 (例: 起業, 失恋)" @bind="skillFilter" @bind:event="oninput" />
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="sortBy">
+                <option value="">並び替え</option>
+                <option value="rating">評価順</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-primary w-100" @onclick="SearchAsync">検索</button>
+        </div>
     </div>
 </div>
 
@@ -27,52 +29,61 @@
 {
     <p>読み込み中...</p>
 }
-else if (members.Count == 0)
+else if (filteredMembers.Count == 0)
 {
     <div class="text-center mt-5 text-muted">
-        <p>まだメンバーが登録されていません。</p>
+        <p>該当するメンバーが見つかりません。</p>
     </div>
 }
 else
 {
     <div class="row g-4">
-        @foreach (var member in members)
+        @foreach (var member in filteredMembers)
         {
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body">
+                        @if (!string.IsNullOrEmpty(member.Bio))
+                        {
+                            <blockquote class="mb-3" style="border-left:4px solid #0d6efd;padding-left:12px;margin:0;">
+                                <p class="mb-0 fw-normal lh-base">
+                                    @{
+                                        var bioExcerpt = member.Bio.Length > 150
+                                            ? member.Bio[..150] + "…"
+                                            : member.Bio;
+                                    }
+                                    @bioExcerpt
+                                </p>
+                            </blockquote>
+                        }
+
                         <div class="d-flex align-items-center mb-3">
                             @if (member.AvatarUrl is not null)
                             {
-                                <img src="@member.AvatarUrl" class="rounded-circle me-2" width="48" height="48" alt="avatar" />
+                                <img src="@member.AvatarUrl" class="rounded-circle me-2" width="40" height="40" alt="avatar" />
                             }
                             else
                             {
                                 <div class="rounded-circle bg-secondary me-2 d-flex align-items-center justify-content-center text-white fw-bold"
-                                     style="width:48px;height:48px">
+                                     style="width:40px;height:40px;font-size:14px">
                                     @member.DisplayName[..1]
                                 </div>
                             }
                             <div>
-                                <h5 class="mb-0">@member.DisplayName</h5>
+                                <h6 class="mb-0">@member.DisplayName</h6>
                                 @if (member.AverageRating > 0)
                                 {
-                                    <small class="text-warning">★ @member.AverageRating.ToString("F1") (@(member.TotalReviews)件)</small>
+                                    <small class="text-warning">★ @member.AverageRating.ToString("F1")</small>
                                 }
                             </div>
                         </div>
-
-                        @if (!string.IsNullOrEmpty(member.Bio))
-                        {
-                            <p class="card-text text-muted small" style="display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">@member.Bio</p>
-                        }
 
                         @if (member.Categories.Count > 0)
                         {
                             <div class="mb-2">
                                 @foreach (var cat in member.Categories.Take(4))
                                 {
-                                    <span class="badge bg-primary-subtle text-primary-emphasis me-1">@cat</span>
+                                    <span class="badge bg-primary-subtle text-primary-emphasis me-1 mb-1">@cat</span>
                                 }
                             </div>
                         }
@@ -82,15 +93,15 @@ else
                             <div class="mb-2">
                                 @foreach (var skill in member.Skills.Take(3))
                                 {
-                                    <span class="badge bg-light text-dark me-1 border">@skill</span>
+                                    <span class="badge bg-light text-dark me-1 border mb-1">@skill</span>
                                 }
                             </div>
                         }
                     </div>
-                    <div class="card-footer text-end">
-                        <button class="btn btn-sm btn-outline-primary"
-                                @onclick="() => GoToProfile(member.UserId)">
-                            プロフィールを見る
+                    <div class="card-footer">
+                        <button class="btn btn-sm btn-primary w-100"
+                                @onclick="() => GoToChat(member.UserId)">
+                            この経験を聞く
                         </button>
                     </div>
                 </div>
@@ -100,7 +111,14 @@ else
 }
 
 @code {
+    [SupplyParameterFromQuery]
+    public string? CategoryFilter { get; set; }
+
     private List<TeacherProfileResponse> members = [];
+    private List<TeacherProfileResponse> filteredMembers => members
+        .Where(m => string.IsNullOrEmpty(CategoryFilter) || m.Categories.Contains(CategoryFilter))
+        .ToList();
+
     private bool isLoading = true;
     private string skillFilter = "";
     private string sortBy = "";
@@ -116,5 +134,5 @@ else
         isLoading = false;
     }
 
-    private void GoToProfile(string userId) => Nav.NavigateTo("/users/" + userId);
+    private void GoToChat(string userId) => Nav.NavigateTo("/chat/" + userId);
 }
