@@ -22,7 +22,14 @@ public class TeacherApiService(HttpClient http)
         => await http.GetFromJsonAsync<TeacherProfileResponse>($"/api/teachers/{userId}");
 
     public async Task<TeacherProfileResponse?> GetMyProfileAsync()
-        => await http.GetFromJsonAsync<TeacherProfileResponse>("/api/teachers/profile/me");
+    {
+        var response = await http.GetAsync("/api/teachers/profile/me");
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return null;
+        if (!response.IsSuccessStatusCode)
+            return null;
+        return await response.Content.ReadFromJsonAsync<TeacherProfileResponse>();
+    }
 
     public async Task<bool> CreateProfileAsync(CreateTeacherProfileRequest request)
     {

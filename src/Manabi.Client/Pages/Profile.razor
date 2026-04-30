@@ -86,15 +86,25 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var profile = await TeacherApi.GetMyProfileAsync();
-        if (profile is not null)
+        try
         {
-            hasProfile = true;
-            bioInput = profile.Bio;
-            skillsInput = string.Join(", ", profile.Skills);
-            selectedCategories = new HashSet<string>(profile.Categories);
+            var profile = await TeacherApi.GetMyProfileAsync();
+            if (profile is not null)
+            {
+                hasProfile = true;
+                bioInput = profile.Bio;
+                skillsInput = string.Join(", ", profile.Skills);
+                selectedCategories = new HashSet<string>(profile.Categories);
+            }
         }
-        isLoading = false;
+        catch (Exception ex)
+        {
+            errorMessage = $"プロフィールの取得に失敗しました：{ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     private void ToggleCategory(string cat, bool isChecked)
