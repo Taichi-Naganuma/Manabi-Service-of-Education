@@ -1,10 +1,11 @@
 using Manabi.Shared.Models.Responses;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.JSInterop;
 
 namespace Manabi.Client.Services;
 
-public class ChatHubService(IConfiguration config, IJSRuntime js) : IAsyncDisposable
+public class ChatHubService(IConfiguration config, IJSRuntime js, NavigationManager nav) : IAsyncDisposable
 {
     private const string TokenKey = "manabi_token";
     private HubConnection? _hub;
@@ -16,7 +17,7 @@ public class ChatHubService(IConfiguration config, IJSRuntime js) : IAsyncDispos
         if (_hub?.State == HubConnectionState.Connected) return;
 
         var token = await js.InvokeAsync<string?>("localStorage.getItem", TokenKey);
-        var baseUrl = config["ApiBaseUrl"] ?? "https://localhost:7119";
+        var baseUrl = config["ApiBaseUrl"] ?? nav.BaseUri.TrimEnd('/');
 
         _hub = new HubConnectionBuilder()
             .WithUrl($"{baseUrl}/hubs/chat", options =>
