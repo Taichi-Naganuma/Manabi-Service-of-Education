@@ -45,12 +45,13 @@
     private List<MessageResponse> messages = [];
     private string inputText = "";
     private string recipientName = "";
+    private string? currentUserId;
     private ElementReference messageContainer;
 
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthState.GetAuthenticationStateAsync();
-        var currentUserId = authState.User.FindFirst("sub")?.Value;
+        currentUserId = authState.User.FindFirst("sub")?.Value;
 
         var user = await UserApi.GetUserAsync(RecipientId);
         recipientName = user?.DisplayName ?? RecipientId;
@@ -76,6 +77,7 @@
     {
         if (msg.SenderId == RecipientId || msg.RecipientId == RecipientId)
         {
+            msg.IsOwn = msg.SenderId == currentUserId;
             messages.Add(msg);
             InvokeAsync(async () =>
             {
