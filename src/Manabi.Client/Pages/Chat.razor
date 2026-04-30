@@ -41,7 +41,7 @@
 
 @code {
     [Parameter] public string RecipientId { get; set; } = "";
-    [SupplyParameterFromQuery]
+    [SupplyParameterFromQuery(Name = "initialMessage")]
     public string? InitialMessage { get; set; }
 
     private List<MessageResponse> messages = [];
@@ -49,8 +49,6 @@
     private string recipientName = "";
     private string? currentUserId;
     private ElementReference messageContainer;
-    private bool isInitialized = false;
-
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthState.GetAuthenticationStateAsync();
@@ -73,20 +71,13 @@
         if (!string.IsNullOrEmpty(InitialMessage))
         {
             inputText = InitialMessage;
+            await SendAsync();
         }
-
-        isInitialized = true;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await ScrollToBottomAsync();
-
-        if (firstRender && !string.IsNullOrEmpty(InitialMessage))
-        {
-            await Task.Delay(300);
-            await SendAsync();
-        }
     }
 
     private void OnMessageReceived(MessageResponse msg)

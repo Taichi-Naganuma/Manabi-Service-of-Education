@@ -100,7 +100,7 @@ else
                     </div>
                     <div class="card-footer">
                         <button class="btn btn-sm btn-primary w-100"
-                                @onclick="() => GoToChat(member.UserId)">
+                                @onclick="() => Nav.NavigateTo($\"/users/{member.UserId}\")">
                             この経験を聞く
                         </button>
                     </div>
@@ -111,7 +111,7 @@ else
 }
 
 @code {
-    [SupplyParameterFromQuery]
+    [SupplyParameterFromQuery(Name = "category")]
     public string? CategoryFilter { get; set; }
 
     private List<TeacherProfileResponse> members = [];
@@ -133,6 +133,4 @@ else
             sortBy: string.IsNullOrEmpty(sortBy) ? null : sortBy);
         isLoading = false;
     }
-
-    private void GoToChat(string userId) => Nav.NavigateTo("/chat/" + userId);
 }
