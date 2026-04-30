@@ -87,6 +87,9 @@ else
                             }
                             <div>
                                 <h6 class="mb-0">@member.DisplayName</h6>
+                                <div class="mt-1">
+                                    <RoleBadge IsSpeaker="true" IsListener="false" />
+                                </div>
                                 @if (member.AverageRating > 0)
                                 {
                                     <small class="text-warning">★ @member.AverageRating.ToString("F1")</small>

@@ -23,14 +23,20 @@ else
                          style="width:96px;height:96px;font-size:2rem">
                         @profile.DisplayName[..1]
                     </div>
-                    <h4>@profile.DisplayName</h4>
+                    <h4 class="mb-1">@profile.DisplayName</h4>
+                    <div class="mt-2">
+                        <RoleBadge IsSpeaker="@profile.IsTeacher" IsListener="@(!profile.IsTeacher)" />
+                    </div>
                 </div>
             </div>
 
-            <button class="btn btn-primary w-100"
-                    @onclick="OpenSessionModal">
-                この経験を聞く
-            </button>
+            @if (profile.IsTeacher)
+            {
+                <button class="btn btn-primary w-100"
+                        @onclick="OpenSessionModal">
+                    この経験を聞く
+                </button>
+            }
         </div>
 
         <div class="col-md-8">

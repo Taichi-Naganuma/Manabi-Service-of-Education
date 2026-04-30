@@ -4,7 +4,13 @@
 
 <PageTitle>マイページ — Mananect</PageTitle>
 
-<h2 class="mb-4">マイページ</h2>
+<div class="d-flex align-items-center gap-3 mb-4">
+    <h2 class="mb-0">マイページ</h2>
+    @if (!isLoading)
+    {
+        <RoleBadge IsSpeaker="@hasProfile" IsListener="@(!hasProfile)" />
+    }
+</div>
 
 @if (isLoading)
 {
