@@ -100,7 +100,7 @@ else
                     </div>
                     <div class="card-footer">
                         <button class="btn btn-sm btn-primary w-100"
-                                @onclick="() => Nav.NavigateTo($\"/users/{member.UserId}\")">
+                                @onclick="() => GoToProfile(member.UserId)">
                             この経験を聞く
                         </button>
                     </div>
@@ -133,4 +133,6 @@ else
             sortBy: string.IsNullOrEmpty(sortBy) ? null : sortBy);
         isLoading = false;
     }
+
+    private void GoToProfile(string userId) => Nav.NavigateTo("/users/" + userId);
 }
