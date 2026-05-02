@@ -2,6 +2,8 @@
 @attribute [Authorize]
 @inject TeacherApiService TeacherApi
 @inject MatteringApiService MatteringApi
+@inject StoryApiService StoryApi
+@inject HttpClient Http
 
 <PageTitle>マイページ — Mananect</PageTitle>
 
@@ -99,6 +101,113 @@ else
             </EditForm>
         </div>
     </div>
+
+    @if (hasProfile)
+    {
+        <div class="card shadow-sm mt-4">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h5 class="card-title mb-0">Story Cards <span class="text-muted small fw-normal">(@myStories.Count / 5本)</span></h5>
+                    @if (myStories.Count < 5)
+                    {
+                        <button class="btn btn-outline-primary btn-sm" @onclick="OpenNewStory">＋ 新しい経験を書く</button>
+                    }
+                </div>
+
+                @if (showStoryForm)
+                {
+                    <div class="border rounded p-3 mb-3 bg-light">
+                        <div class="mb-2">
+                            <input class="form-control form-control-sm" placeholder="タイトル（任意）" @bind="storyTitle" />
+                        </div>
+                        <div class="mb-2">
+                            <textarea class="form-control form-control-sm" rows="4"
+                                      placeholder="あなたの経験を一節として書いてください（50字以上）"
+                                      @bind="storyContent"></textarea>
+                        </div>
+                        <div class="mb-2">
+                            <select class="form-select form-select-sm" @bind="storyCategory">
+                                <option value="">カテゴリー（任意）</option>
+                                @foreach (var cat in AvailableCategories)
+                                {
+                                    <option value="@cat">@cat</option>
+                                }
+                            </select>
+                        </div>
+                        @if (storyError is not null)
+                        {
+                            <div class="text-danger small mb-2">@storyError</div>
+                        }
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary btn-sm" @onclick="SaveStory" disabled="@isSavingStory">
+                                @(isSavingStory ? "保存中..." : "公開する")
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="CancelStory">キャンセル</button>
+                        </div>
+                    </div>
+                }
+
+                @if (myStories.Count == 0 && !showStoryForm)
+                {
+                    <p class="text-muted small">まだ Story Cards がありません。「＋ 新しい経験を書く」から追加できます。</p>
+                }
+                else
+                {
+                    <div class="row g-3">
+                        @foreach (var story in myStories)
+                        {
+                            <div class="col-12">
+                                <div class="border rounded p-3 position-relative">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <div>
+                                            @if (!string.IsNullOrEmpty(story.Title))
+                                            {
+                                                <p class="mb-0 fw-bold small text-primary">【@story.Title】</p>
+                                            }
+                                            @if (!string.IsNullOrEmpty(story.Category))
+                                            {
+                                                <span class="badge bg-primary-subtle text-primary-emphasis me-1">@story.Category</span>
+                                            }
+                                        </div>
+                                        <div class="d-flex gap-2 align-items-center">
+                                            <span class="badge @(story.IsPublished ? "bg-success-subtle text-success" : "bg-secondary-subtle text-secondary") small">
+                                                @(story.IsPublished ? "公開中" : "下書き")
+                                            </span>
+                                            <button class="btn btn-outline-danger btn-sm py-0 px-1" style="font-size:12px;"
+                                                    @onclick="() => DeleteStory(story)">削除</button>
+                                        </div>
+                                    </div>
+                                    <p class="mb-0 small lh-base" style="white-space:pre-wrap;">@GetExcerpt(story.Content)</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <div class="card shadow-sm mt-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">メール通知設定</h5>
+            <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" id="notifyLetter"
+                       checked="@notifyOnLetter"
+                       @onchange="e => UpdateNotifyPref(nameof(notifyOnLetter), (bool)e.Value!)" />
+                <label class="form-check-label" for="notifyLetter">手紙が届いたとき</label>
+            </div>
+            <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" id="notifyRequest"
+                       checked="@notifyOnRequest"
+                       @onchange="e => UpdateNotifyPref(nameof(notifyOnRequest), (bool)e.Value!)" />
+                <label class="form-check-label" for="notifyRequest">セッションリクエストが届いたとき</label>
+            </div>
+            @if (notifySaved)
+            {
+                <p class="text-success small mt-1">保存しました</p>
+            }
+        </div>
+    </div>
 }
 
 @code {
@@ -119,6 +228,16 @@ else
     private string bioQ3 = "";
     private HashSet<string> selectedCategories = new();
     private MatteringStats? stats;
+    private List<StoryEditDto> myStories = [];
+    private bool notifyOnLetter = true;
+    private bool notifyOnRequest = true;
+    private bool notifySaved = false;
+    private bool showStoryForm = false;
+    private bool isSavingStory = false;
+    private string storyTitle = "";
+    private string storyContent = "";
+    private string storyCategory = "";
+    private string? storyError;
 
     private readonly UpdateTeacherProfileRequest model = new();
 
@@ -128,9 +247,17 @@ else
         {
             var profileTask = TeacherApi.GetMyProfileAsync();
             var statsTask = MatteringApi.GetStatsAsync();
-            await Task.WhenAll(profileTask, statsTask);
+            var storiesTask = StoryApi.GetMyStoriesAsync();
+            var notifTask = Http.GetFromJsonAsync<NotifPref>("/api/notifications/preferences");
+            await Task.WhenAll(profileTask, statsTask, storiesTask, notifTask);
 
             stats = statsTask.Result;
+            myStories = storiesTask.Result;
+            if (notifTask.Result is { } np)
+            {
+                notifyOnLetter = np.NotifyOnLetterReceived;
+                notifyOnRequest = np.NotifyOnSessionRequest;
+            }
             var profile = profileTask.Result;
             if (profile is not null)
             {
@@ -149,6 +276,56 @@ else
             isLoading = false;
         }
     }
+
+    private void OpenNewStory()
+    {
+        storyTitle = "";
+        storyContent = "";
+        storyCategory = "";
+        storyError = null;
+        showStoryForm = true;
+    }
+
+    private void CancelStory()
+    {
+        showStoryForm = false;
+        storyError = null;
+    }
+
+    private async Task SaveStory()
+    {
+        if (storyContent.Length < 50)
+        {
+            storyError = "本文は50文字以上で書いてください。";
+            return;
+        }
+        isSavingStory = true;
+        storyError = null;
+        var ok = await StoryApi.CreateAsync(new CreateStoryRequest(
+            storyContent,
+            string.IsNullOrWhiteSpace(storyTitle) ? null : storyTitle,
+            string.IsNullOrWhiteSpace(storyCategory) ? null : storyCategory,
+            Publish: true));
+        if (ok)
+        {
+            showStoryForm = false;
+            myStories = await StoryApi.GetMyStoriesAsync();
+        }
+        else
+        {
+            storyError = "保存に失敗しました。";
+        }
+        isSavingStory = false;
+    }
+
+    private async Task DeleteStory(StoryEditDto story)
+    {
+        var ok = await StoryApi.DeleteAsync(story.Id);
+        if (ok) myStories.Remove(story);
+    }
+
+    private static string GetExcerpt(string content, int max = 120)
+        => content.Length > max ? content[..max] + "…" : content;
 
     private void ParseBioToPrompts(string bio)
     {
@@ -222,4 +399,22 @@ else
         }
         isSaving = false;
     }
+
+    private async Task UpdateNotifyPref(string field, bool value)
+    {
+        if (field == nameof(notifyOnLetter)) notifyOnLetter = value;
+        else notifyOnRequest = value;
+
+        await Http.PutAsJsonAsync("/api/notifications/preferences", new
+        {
+            NotifyOnLetterReceived = notifyOnLetter,
+            NotifyOnSessionRequest = notifyOnRequest
+        });
+        notifySaved = true;
+        await Task.Delay(2000);
+        notifySaved = false;
+        StateHasChanged();
+    }
+
+    private record NotifPref(bool NotifyOnLetterReceived, bool NotifyOnSessionRequest);
 }
