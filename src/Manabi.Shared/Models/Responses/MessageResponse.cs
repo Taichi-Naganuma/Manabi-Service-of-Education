@@ -9,4 +9,5 @@ public class MessageResponse
     public string Content { get; set; } = string.Empty;
     public DateTime SentAt { get; set; }
     public bool IsOwn { get; set; }
+    public bool IsSystemMessage { get; set; }
 }

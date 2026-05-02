@@ -29,5 +29,8 @@ builder.Services.AddScoped<TeacherApiService>();
 builder.Services.AddScoped<ChatApiService>();
 builder.Services.AddScoped<UserApiService>();
 builder.Services.AddScoped<ChatHubService>();
+builder.Services.AddScoped<StoryApiService>();
+builder.Services.AddScoped<MatteringApiService>();
+builder.Services.AddScoped<LetterApiService>();
 
 await builder.Build().RunAsync();

@@ -1,0 +1,50 @@
+@if (IsOpen)
+{
+    <div class="modal d-block" style="background:rgba(0,0,0,0.6);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered" style="max-width:380px;">
+            <div class="modal-content border-0 shadow-lg text-center" style="border-radius:16px;">
+                <div class="modal-body py-5 px-4">
+                    <p class="text-muted mb-4" style="font-size:0.9rem;letter-spacing:0.05em;">これから始まる対話</p>
+                    <p class="fw-semibold mb-2" style="font-size:1.1rem;line-height:1.7;">
+                        @if (IsListener)
+                        {
+                            @($"{PartnerName}さんの「{Category}」の経験を")
+                            <br />
+                            @("聞く時間です。")
+                        }
+                        else
+                        {
+                            @($"あなたの「{Category}」の話を")
+                            <br />
+                            @($"聞きたい人がいます。")
+                        }
+                    </p>
+                    <p class="text-muted mb-5" style="font-size:0.95rem;">
+                        @if (IsListener)
+                        {
+                            @("相手の話を、最後まで聞きますか？")
+                        }
+                        else
+                        {
+                            @("話してもいいですか？")
+                        }
+                    </p>
+                    <button class="btn btn-primary px-5 py-2" style="border-radius:24px;"
+                            @onclick="Confirm">
+                        @(IsListener ? "はい、聞きます" : "はい、話します")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public string PartnerName { get; set; } = "";
+    [Parameter] public string Category { get; set; } = "経験";
+    [Parameter] public bool IsListener { get; set; } = true;
+    [Parameter] public EventCallback OnConfirmAsync { get; set; }
+
+    private async Task Confirm() => await OnConfirmAsync.InvokeAsync();
+}

@@ -46,6 +46,7 @@ builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<TeacherService>();
 builder.Services.AddScoped<ChatService>();
+builder.Services.AddScoped<IEmailService, SendGridEmailService>();
 
 builder.Services.AddAuthentication(options =>
 {

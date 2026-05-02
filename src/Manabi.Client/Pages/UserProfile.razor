@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @inject UserApiService UserApi
 @inject NavigationManager Nav
+@inject HttpClient Http
 
 <PageTitle>@(profile?.DisplayName ?? "プロフィール") — Mananect</PageTitle>
 
@@ -18,7 +19,13 @@ else
     <div class="row">
         <div class="col-md-4">
             <div class="card shadow-sm mb-4">
-                <div class="card-body text-center">
+                <div class="card-body text-center position-relative">
+                    <div class="position-absolute top-0 end-0 m-2">
+                        <ContentMenu TargetUserId="@UserId"
+                                     TargetType="profile"
+                                     TargetId="@UserId"
+                                     OnUserBlocked="@OnUserBlocked" />
+                    </div>
                     <div class="rounded-circle bg-secondary mx-auto mb-3 d-flex align-items-center justify-content-center text-white fw-bold"
                          style="width:96px;height:96px;font-size:2rem">
                         @profile.DisplayName[..1]
@@ -43,7 +50,10 @@ else
             @if (!string.IsNullOrEmpty(profile.Bio))
             {
                 <h5 class="mb-3">自己紹介・話せる経験</h5>
-                <p class="mb-4" style="white-space: pre-wrap">@profile.Bio</p>
+                @foreach (var part in profile.Bio.Split("\n\n", StringSplitOptions.RemoveEmptyEntries))
+                {
+                    <p class="mb-3" style="white-space: pre-wrap">@part</p>
+                }
             }
 
             @if (profile.Categories is { Count: > 0 })
@@ -68,9 +78,23 @@ else
                 </div>
             }
 
-            @if (profile.IsTeacher && profile.AverageRating > 0)
+            @if (publicLetters.Count > 0)
             {
-                <p class="text-warning">★ @profile.AverageRating?.ToString("F1") （@(profile.TotalReviews)件のレビュー）</p>
+                <hr />
+                <h6 class="mb-3">🌿 この人への手紙</h6>
+                @foreach (var letter in visibleLetters)
+                {
+                    <div class="mb-3 p-3 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+                        <p class="mb-1 fst-italic lh-base">「@letter.Content」</p>
+                        <p class="mb-0 text-muted small">— <a href="/users/@letter.FromUserId">@letter.FromUserName</a> / @letter.CreatedAt.ToString("yyyy-MM-dd")</p>
+                    </div>
+                }
+                @if (publicLetters.Count > 3 && !showAllLetters)
+                {
+                    <button class="btn btn-link btn-sm ps-0" @onclick="() => showAllLetters = true">
+                        もっと見る (@(publicLetters.Count - 3)件)
+                    </button>
+                }
             }
         </div>
     </div>
@@ -87,20 +111,34 @@ else
     private UserProfileResponse? profile;
     private bool isLoading = true;
     private bool isModalOpen = false;
+    private bool showAllLetters = false;
+
+    private List<PublicLetterDto> publicLetters = [];
+    private List<PublicLetterDto> visibleLetters => showAllLetters ? publicLetters : publicLetters.Take(3).ToList();
 
     protected override async Task OnInitializedAsync()
     {
-        profile = await UserApi.GetUserAsync(UserId);
+        var profileTask = UserApi.GetUserAsync(UserId);
+        var lettersTask = Http.GetFromJsonAsync<List<PublicLetterDto>>($"/api/letters/public/{UserId}?limit=10");
+        await Task.WhenAll(profileTask, lettersTask);
+
+        profile = profileTask.Result;
+        publicLetters = lettersTask.Result ?? [];
         isLoading = false;
     }
 
     private void OpenSessionModal() => isModalOpen = true;
     private void CloseSessionModal() => isModalOpen = false;
 
-    private async Task HandleSessionRequest((string category, string message) request)
+    private Task HandleSessionRequest((string category, string message) request)
     {
         CloseSessionModal();
         var messageEncoded = Uri.EscapeDataString(request.message);
         Nav.NavigateTo($"/chat/{UserId}?initialMessage={messageEncoded}");
+        return Task.CompletedTask;
     }
+
+    private void OnUserBlocked() => Nav.NavigateTo("/members");
+
+    private record PublicLetterDto(Guid Id, string FromUserName, string FromUserId, string Content, DateTime CreatedAt);
 }

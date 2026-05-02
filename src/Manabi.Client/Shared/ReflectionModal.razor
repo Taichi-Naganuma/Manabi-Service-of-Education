@@ -1,0 +1,80 @@
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthState
+
+@if (IsOpen)
+{
+    <div class="modal d-block" style="background:rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered" style="max-width:400px;">
+            <div class="modal-content border-0 shadow-lg text-center" style="border-radius:16px;">
+                <div class="modal-body py-4 px-4">
+                    <p class="fw-semibold mb-1" style="font-size:1.05rem;">セッションが終わりました</p>
+                    @if (IsListener)
+                    {
+                        <p class="text-muted mb-3 small">@PartnerName さんの話で、<br />あなたが受け取ったものは？</p>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-3 small">話してみてどうでしたか？</p>
+                    }
+                    <textarea class="form-control mb-3" rows="3"
+                              placeholder="@(IsListener ? "短くてもOKです。" : "自分だけの記録です。")"
+                              @bind="reflectionText"></textarea>
+                </div>
+                <div class="modal-footer border-0 justify-content-center gap-2 pt-0 pb-4">
+                    @if (IsListener)
+                    {
+                        <button class="btn btn-outline-secondary btn-sm px-4" @onclick="Skip">今は書かない</button>
+                        <button class="btn btn-primary btn-sm px-4" @onclick="SendAsLetter"
+                                disabled="@(string.IsNullOrWhiteSpace(reflectionText))">
+                            手紙として届ける
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-outline-secondary btn-sm px-4" @onclick="Skip">スキップ</button>
+                        <button class="btn btn-primary btn-sm px-4" @onclick="SaveReflection"
+                                disabled="@(string.IsNullOrWhiteSpace(reflectionText))">
+                            自分の記録に残す
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public string PartnerUserId { get; set; } = "";
+    [Parameter] public string PartnerName { get; set; } = "";
+    [Parameter] public bool IsListener { get; set; } = true;
+    [Parameter] public EventCallback OnSkipAsync { get; set; }
+    [Parameter] public EventCallback<string> OnSendAsLetterAsync { get; set; }  // Action<string> でも可
+    [Parameter] public EventCallback OnSavedAsync { get; set; }
+
+    private string reflectionText = "";
+
+    private async Task Skip()
+    {
+        reflectionText = "";
+        await OnSkipAsync.InvokeAsync();
+    }
+
+    private async Task SendAsLetter()
+    {
+        var text = reflectionText;
+        reflectionText = "";
+        await OnSendAsLetterAsync.InvokeAsync(text);
+    }
+
+    private async Task SaveReflection()
+    {
+        await Http.PostAsJsonAsync("/api/reflections", new
+        {
+            PartnerUserId = PartnerUserId,
+            Content = reflectionText
+        });
+        reflectionText = "";
+        await OnSavedAsync.InvokeAsync();
+    }
+}

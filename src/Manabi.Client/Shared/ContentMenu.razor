@@ -1,0 +1,114 @@
+@inject MatteringApiService MatteringApi
+
+<div class="dropdown d-inline-block position-relative">
+    <button class="btn btn-link btn-sm text-muted p-1 lh-1" style="font-size:18px;text-decoration:none;"
+            @onclick="ToggleMenu" @onclick:stopPropagation="true">⋯</button>
+    @if (isOpen)
+    {
+        <div class="dropdown-menu show shadow" style="position:absolute;right:0;top:100%;min-width:160px;z-index:1000;"
+             @onclick:stopPropagation="true">
+            @if (!string.IsNullOrEmpty(TargetUserId))
+            {
+                <button class="dropdown-item text-danger" @onclick="BlockUser">このユーザーをブロック</button>
+                <div class="dropdown-divider"></div>
+            }
+            <button class="dropdown-item" @onclick="() => ShowReportForm = true">通報する</button>
+        </div>
+    }
+</div>
+
+@if (ShowReportForm)
+{
+    <div class="modal d-block" style="background:rgba(0,0,0,0.4);" @onclick="() => ShowReportForm = false">
+        <div class="modal-dialog" @onclick:stopPropagation="true">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">通報する</h6>
+                    <button class="btn-close" @onclick="() => ShowReportForm = false"></button>
+                </div>
+                <div class="modal-body">
+                    @if (reportSent)
+                    {
+                        <p class="text-success">通報を受け付けました。ご協力ありがとうございます。</p>
+                    }
+                    else
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">理由を選んでください</label>
+                            @foreach (var r in reportReasons)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="reason" id="reason-@r.Key"
+                                           @onchange="() => selectedReason = r.Key" />
+                                    <label class="form-check-label" for="reason-@r.Key">@r.Value</label>
+                                </div>
+                            }
+                        </div>
+                        @if (selectedReason == "other")
+                        {
+                            <div class="mb-3">
+                                <textarea class="form-control" rows="2" placeholder="詳細を記入（任意）"
+                                          @bind="additionalText"></textarea>
+                            </div>
+                        }
+                        @if (reportError is not null)
+                        {
+                            <div class="text-danger small">@reportError</div>
+                        }
+                    }
+                </div>
+                @if (!reportSent)
+                {
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="() => ShowReportForm = false">キャンセル</button>
+                        <button class="btn btn-danger btn-sm" @onclick="SubmitReport">通報を送信</button>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string? TargetUserId { get; set; }
+    [Parameter] public string TargetType { get; set; } = "profile";
+    [Parameter] public string TargetId { get; set; } = "";
+    [Parameter] public EventCallback OnUserBlocked { get; set; }
+
+    private bool isOpen = false;
+    private bool ShowReportForm = false;
+    private bool reportSent = false;
+    private string selectedReason = "";
+    private string? additionalText;
+    private string? reportError;
+
+    private static readonly Dictionary<string, string> reportReasons = new()
+    {
+        { "inappropriate", "不適切な内容" },
+        { "harassment", "嫌がらせ" },
+        { "spam", "スパム" },
+        { "other", "その他" },
+    };
+
+    private void ToggleMenu() => isOpen = !isOpen;
+
+    private async Task BlockUser()
+    {
+        isOpen = false;
+        if (string.IsNullOrEmpty(TargetUserId)) return;
+        await MatteringApi.BlockUserAsync(TargetUserId);
+        await OnUserBlocked.InvokeAsync();
+    }
+
+    private async Task SubmitReport()
+    {
+        if (string.IsNullOrEmpty(selectedReason))
+        {
+            reportError = "理由を選択してください。";
+            return;
+        }
+        var ok = await MatteringApi.ReportAsync(TargetType, TargetId, selectedReason, additionalText);
+        if (ok) reportSent = true;
+        else reportError = "送信に失敗しました。もう一度お試しください。";
+    }
+}

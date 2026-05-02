@@ -1,10 +1,11 @@
 @page "/"
+@inject StoryApiService StoryApi
 
 <PageTitle>Mananect — あなたの経験が、誰かの人生を変える</PageTitle>
 
 <div class="text-center mt-5 mb-5">
     <h1 class="display-4 fw-bold mb-3">Mananect</h1>
-    <p class="lead text-muted mb-4">あなたの経験が、誰かの人生を変える</p>
+    <p class="lead text-muted mb-4">あなたの話を、本気で聞いてくれる誰かに、会いに行く。</p>
     <p class="fs-6 text-muted mb-4">資格も肩書きも必要ない。<br />あなたの人生経験で、誰かの人生が変わる。</p>
 </div>
 
@@ -20,8 +21,35 @@
         }
     </div>
 
-    <div class="text-center mt-5">
-        <a class="btn btn-secondary btn-lg" href="/members">すべてを表示</a>
+    @if (stories.Count > 0)
+    {
+        <div class="mb-5">
+            <h4 class="mb-3 fw-bold">最近の経験から</h4>
+            <div class="row g-4">
+                @foreach (var story in stories)
+                {
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body">
+                                @if (!string.IsNullOrEmpty(story.Title))
+                                {
+                                    <p class="mb-2 fw-bold text-primary small">【@story.Title】</p>
+                                }
+                                <p class="mb-3 lh-base" style="white-space:pre-wrap;">@GetExcerpt(story.Content)</p>
+                                <p class="mb-0 text-muted small">— @story.AuthorName</p>
+                            </div>
+                            <div class="card-footer bg-transparent border-0 pt-0">
+                                <a href="/users/@story.AuthorUserId" class="btn btn-sm btn-outline-primary w-100">この人と話す</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <div class="text-center mt-3">
+        <a class="btn btn-secondary btn-lg" href="/members">すべてのメンバーを見る</a>
     </div>
 </div>
 
@@ -30,4 +58,14 @@
     {
         "恋愛", "仕事", "起業", "健康", "人間関係", "家族", "学び", "日常"
     };
+
+    private List<StoryDto> stories = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        stories = await StoryApi.GetStoriesAsync(limit: 6);
+    }
+
+    private static string GetExcerpt(string content, int max = 120)
+        => content.Length > max ? content[..max] + "…" : content;
 }

@@ -11,21 +11,36 @@
 
 <div class="d-flex flex-column" style="height: calc(100vh - 120px)">
     <div class="border-bottom pb-2 mb-2 d-flex align-items-center gap-2">
-        <a href="/users/@RecipientId" class="text-decoration-none text-dark fw-bold">@recipientName</a>
+        <a href="/users/@RecipientId" class="text-decoration-none text-dark fw-bold flex-grow-1">@recipientName</a>
+        <button class="btn btn-outline-secondary btn-sm"
+                @onclick="OpenLetterModal">✉️ 手紙を書く</button>
+        <button class="btn btn-outline-danger btn-sm"
+                @onclick="EndSession">セッションを終える</button>
     </div>
 
     <div class="flex-grow-1 overflow-auto mb-2" @ref="messageContainer">
         @foreach (var msg in messages)
         {
-            <div class="d-flex @(msg.IsOwn ? "justify-content-end" : "justify-content-start") mb-2">
-                <div class="p-2 rounded @(msg.IsOwn ? "bg-primary text-white" : "bg-light border")"
-                     style="max-width: 70%">
-                    <div>@msg.Content</div>
-                    <small class="@(msg.IsOwn ? "text-white-50" : "text-muted")">
-                        @msg.SentAt.ToLocalTime().ToString("HH:mm")
-                    </small>
+            @if (msg.IsSystemMessage)
+            {
+                <div class="text-center text-muted small my-3">
+                    <span class="px-3 py-1 rounded-pill" style="background:#f1f5f9;border:1px solid #e2e8f0;">
+                        @msg.Content
+                    </span>
                 </div>
-            </div>
+            }
+            else
+            {
+                <div class="d-flex @(msg.IsOwn ? "justify-content-end" : "justify-content-start") mb-2">
+                    <div class="p-2 rounded @(msg.IsOwn ? "bg-primary text-white" : "bg-light border")"
+                         style="max-width: 70%">
+                        <div>@msg.Content</div>
+                        <small class="@(msg.IsOwn ? "text-white-50" : "text-muted")">
+                            @msg.SentAt.ToLocalTime().ToString("HH:mm")
+                        </small>
+                    </div>
+                </div>
+            }
         }
     </div>
 
@@ -39,6 +54,27 @@
     </div>
 </div>
 
+<SessionStartModal IsOpen="@showSessionStart"
+                   PartnerName="@recipientName"
+                   Category="@sessionCategory"
+                   IsListener="@isListener"
+                   OnConfirmAsync="@ConfirmSessionStart" />
+
+<WitnessLetterModal IsOpen="@showLetterModal"
+                    RecipientId="@RecipientId"
+                    RecipientName="@recipientName"
+                    PrefilledContent="@prefilledLetterContent"
+                    OnCloseAsync="@CloseLetterModal"
+                    OnSentAsync="@OnLetterSent" />
+
+<ReflectionModal IsOpen="@showReflectionModal"
+                 PartnerUserId="@RecipientId"
+                 PartnerName="@recipientName"
+                 IsListener="@isListener"
+                 OnSkipAsync="@CloseReflection"
+                 OnSendAsLetterAsync="@OnReflectionSendAsLetter"
+                 OnSavedAsync="@CloseReflection" />
+
 @code {
     [Parameter] public string RecipientId { get; set; } = "";
     [SupplyParameterFromQuery(Name = "initialMessage")]
@@ -49,6 +85,14 @@
     private string recipientName = "";
     private string? currentUserId;
     private ElementReference messageContainer;
+
+    private bool showSessionStart = false;
+    private bool showLetterModal = false;
+    private bool showReflectionModal = false;
+    private string prefilledLetterContent = "";
+    private string sessionCategory = "経験";
+    private bool isListener = true;
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthState.GetAuthenticationStateAsync();
@@ -68,16 +112,77 @@
         await HubService.ConnectAsync();
         await ChatApi.MarkReadAsync(RecipientId);
 
+        // initialMessage は初回チャット時のみ送信
         if (!string.IsNullOrEmpty(InitialMessage) && messages.Count == 0)
         {
             inputText = InitialMessage;
             await SendAsync();
+        }
+
+        // SessionStartModal：初回のみ表示（localStorage で記録）
+        var seenKey = $"chat_intro_seen_{RecipientId}";
+        var seen = await JS.InvokeAsync<string?>("localStorage.getItem", seenKey);
+        if (seen is null)
+        {
+            // Listener か Speaker かを判定（プロフィールを持っているかどうか）
+            isListener = !(user?.IsTeacher ?? false);
+            showSessionStart = true;
         }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await ScrollToBottomAsync();
+    }
+
+    private async Task ConfirmSessionStart()
+    {
+        showSessionStart = false;
+        var seenKey = $"chat_intro_seen_{RecipientId}";
+        await JS.InvokeVoidAsync("localStorage.setItem", seenKey, "1");
+
+        // システムメッセージを送信
+        await HubService.SendMessageAsync(RecipientId, "— ここからセッションがはじまりました —");
+    }
+
+    private void OpenLetterModal()
+    {
+        prefilledLetterContent = "";
+        showLetterModal = true;
+    }
+
+    private void CloseLetterModal() => showLetterModal = false;
+
+    private async Task OnLetterSent()
+    {
+        showLetterModal = false;
+        // チャットタイムラインに手紙イベントを表示
+        messages.Add(new MessageResponse
+        {
+            Content = "✉️ 手紙が届きました",
+            SenderId = currentUserId ?? "",
+            RecipientId = RecipientId,
+            SentAt = DateTime.UtcNow,
+            IsOwn = true,
+            IsSystemMessage = true
+        });
+        StateHasChanged();
+        await ScrollToBottomAsync();
+    }
+
+    private async Task EndSession()
+    {
+        await HubService.SendMessageAsync(RecipientId, "— セッションが終わりました —");
+        showReflectionModal = true;
+    }
+
+    private void CloseReflection() => showReflectionModal = false;
+
+    private void OnReflectionSendAsLetter(string text)
+    {
+        showReflectionModal = false;
+        prefilledLetterContent = text;
+        showLetterModal = true;
     }
 
     private void OnMessageReceived(MessageResponse msg)
@@ -110,10 +215,7 @@
 
     private async Task ScrollToBottomAsync()
     {
-        try
-        {
-            await JS.InvokeVoidAsync("scrollToBottom", messageContainer);
-        }
+        try { await JS.InvokeVoidAsync("scrollToBottom", messageContainer); }
         catch { }
     }
 

@@ -1,0 +1,149 @@
+@page "/my-letters"
+@attribute [Authorize]
+@inject LetterApiService LetterApi
+
+<PageTitle>届いた手紙 — Mananect</PageTitle>
+
+<h2 class="mb-4">✉️ 手紙</h2>
+
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "received" ? "active" : "")"
+                @onclick='() => activeTab = "received"'>
+            届いた手紙 @(received.Count > 0 ? $"({received.Count})" : "")
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "sent" ? "active" : "")"
+                @onclick='() => activeTab = "sent"'>
+            送った手紙 @(sent.Count > 0 ? $"({sent.Count})" : "")
+        </button>
+    </li>
+</ul>
+
+@if (isLoading)
+{
+    <p>読み込み中...</p>
+}
+else if (activeTab == "received")
+{
+    @if (received.Count == 0)
+    {
+        <div class="text-center text-muted mt-5">
+            <p class="fs-5">まだ手紙は届いていません</p>
+            <p class="small">セッション後にListenerが手紙を書いてくれることがあります。</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var letter in received)
+            {
+                <div class="col-md-6">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <p class="text-muted small mb-0">
+                                    <a href="/users/@letter.OtherUserId">@letter.OtherUserName</a>
+                                    さんから / @letter.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd")
+                                </p>
+                                <span class="badge @(letter.IsPublic ? "bg-success-subtle text-success" : "bg-secondary-subtle text-secondary") small">
+                                    @(letter.IsPublic ? "✓ 公開中" : "非公開")
+                                </span>
+                            </div>
+                            <p class="lh-base" style="white-space:pre-wrap;">@letter.Content</p>
+                        </div>
+                        <div class="card-footer bg-transparent border-0 pt-0">
+                            @if (letter.SenderAllowsDisplay)
+                            {
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox"
+                                           id="toggle-@letter.Id"
+                                           checked="@letter.RecipientAllowsDisplay"
+                                           @onchange="e => ToggleDisplay(letter, (bool)e.Value!)" />
+                                    <label class="form-check-label small" for="toggle-@letter.Id">
+                                        プロフィールに飾る
+                                    </label>
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted small mb-0">送信者が公開を許可していないため表示できません</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+else
+{
+    @if (sent.Count == 0)
+    {
+        <div class="text-center text-muted mt-5">
+            <p class="fs-5">まだ手紙を送っていません</p>
+            <p class="small">チャット画面のヘッダーから手紙を送ることができます。</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var letter in sent)
+            {
+                <div class="col-md-6">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <p class="text-muted small mb-0">
+                                    <a href="/users/@letter.OtherUserId">@letter.OtherUserName</a>
+                                    さんへ / @letter.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd")
+                                </p>
+                            </div>
+                            <p class="lh-base" style="white-space:pre-wrap;">@letter.Content</p>
+                        </div>
+                        <div class="card-footer bg-transparent border-0 pt-0">
+                            <button class="btn btn-outline-danger btn-sm"
+                                    @onclick="() => DeleteLetter(letter)">
+                                削除
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+
+@code {
+    private List<LetterDto> received = [];
+    private List<LetterDto> sent = [];
+    private bool isLoading = true;
+    private string activeTab = "received";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var t1 = LetterApi.GetReceivedAsync();
+        var t2 = LetterApi.GetSentAsync();
+        await Task.WhenAll(t1, t2);
+        received = t1.Result;
+        sent = t2.Result;
+        isLoading = false;
+    }
+
+    private async Task ToggleDisplay(LetterDto letter, bool allowDisplay)
+    {
+        var ok = await LetterApi.UpdateRecipientDisplayAsync(letter.Id, allowDisplay);
+        if (ok)
+        {
+            var idx = received.IndexOf(letter);
+            received[idx] = letter with { RecipientAllowsDisplay = allowDisplay, IsPublic = letter.SenderAllowsDisplay && allowDisplay };
+        }
+    }
+
+    private async Task DeleteLetter(LetterDto letter)
+    {
+        var ok = await LetterApi.DeleteAsync(letter.Id);
+        if (ok) sent.Remove(letter);
+    }
+}

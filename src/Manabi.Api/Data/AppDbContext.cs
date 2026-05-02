@@ -11,6 +11,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<DirectMessage> DirectMessages => Set<DirectMessage>();
     public DbSet<Review> Reviews => Set<Review>();
+    public DbSet<WitnessLetter> WitnessLetters => Set<WitnessLetter>();
+    public DbSet<StorySnippet> StorySnippets => Set<StorySnippet>();
+    public DbSet<EmailNotificationPreference> EmailNotificationPreferences => Set<EmailNotificationPreference>();
+    public DbSet<SelfReflection> SelfReflections => Set<SelfReflection>();
+    public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
+    public DbSet<Report> Reports => Set<Report>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -69,6 +75,73 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             .HasOne(r => r.Reviewer)
             .WithMany()
             .HasForeignKey(r => r.ReviewerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<WitnessLetter>()
+            .HasOne(l => l.FromUser)
+            .WithMany()
+            .HasForeignKey(l => l.FromUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<WitnessLetter>()
+            .HasOne(l => l.ToUser)
+            .WithMany()
+            .HasForeignKey(l => l.ToUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<WitnessLetter>()
+            .HasIndex(l => l.ToUserId);
+
+        builder.Entity<StorySnippet>()
+            .HasOne(s => s.Author)
+            .WithMany()
+            .HasForeignKey(s => s.AuthorUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<StorySnippet>()
+            .HasIndex(s => new { s.IsPublished, s.Category });
+
+        builder.Entity<EmailNotificationPreference>()
+            .HasKey(e => e.UserId);
+
+        builder.Entity<EmailNotificationPreference>()
+            .HasOne(e => e.User)
+            .WithOne()
+            .HasForeignKey<EmailNotificationPreference>(e => e.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<SelfReflection>()
+            .HasOne(r => r.User)
+            .WithMany()
+            .HasForeignKey(r => r.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<SelfReflection>()
+            .HasOne(r => r.PartnerUser)
+            .WithMany()
+            .HasForeignKey(r => r.PartnerUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<UserBlock>()
+            .HasOne(b => b.Blocker)
+            .WithMany()
+            .HasForeignKey(b => b.BlockerUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<UserBlock>()
+            .HasOne(b => b.Blocked)
+            .WithMany()
+            .HasForeignKey(b => b.BlockedUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<UserBlock>()
+            .HasIndex(b => new { b.BlockerUserId, b.BlockedUserId })
+            .IsUnique();
+
+        builder.Entity<Report>()
+            .HasOne(r => r.Reporter)
+            .WithMany()
+            .HasForeignKey(r => r.ReporterUserId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -1,0 +1,108 @@
+@inject LetterApiService LetterApi
+
+@if (IsOpen)
+{
+    <div class="modal d-block" style="background:rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title">✉️ 手紙を書く</h5>
+                    <button class="btn-close" @onclick="Cancel"></button>
+                </div>
+                <div class="modal-body">
+                    @if (isSent)
+                    {
+                        <div class="text-center py-3">
+                            <p class="fs-5 mb-2">✉️ 手紙を届けました</p>
+                            <p class="text-muted small">@RecipientName さんに届きました。</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-3">@RecipientName さんへ</p>
+                        <div class="mb-3">
+                            <textarea class="form-control" rows="5"
+                                      placeholder="あなたが受け取ったものを、言葉にしてみてください。短くてもOKです。"
+                                      maxlength="1000"
+                                      @bind="content"></textarea>
+                            <div class="text-end text-muted small mt-1">@content.Length / 1000</div>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="allowDisplay" @bind="senderAllowsDisplay" />
+                            <label class="form-check-label small" for="allowDisplay">
+                                プロフィールに飾る許可をする
+                                <span class="text-muted">（相手も承認した場合のみ公開）</span>
+                            </label>
+                        </div>
+                        @if (errorMessage is not null)
+                        {
+                            <div class="text-danger small mt-2">@errorMessage</div>
+                        }
+                    }
+                </div>
+                <div class="modal-footer border-0">
+                    @if (isSent)
+                    {
+                        <button class="btn btn-primary" @onclick="Cancel">チャットに戻る</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-outline-secondary" @onclick="Cancel">キャンセル</button>
+                        <button class="btn btn-primary" @onclick="Send"
+                                disabled="@(isSending || string.IsNullOrWhiteSpace(content))">
+                            @(isSending ? "送信中..." : "届ける")
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public string RecipientId { get; set; } = "";
+    [Parameter] public string RecipientName { get; set; } = "";
+    [Parameter] public string PrefilledContent { get; set; } = "";
+    [Parameter] public EventCallback OnCloseAsync { get; set; }
+    [Parameter] public EventCallback OnSentAsync { get; set; }
+
+    private string content = "";
+    private bool senderAllowsDisplay = true;
+    private bool isSending = false;
+    private bool isSent = false;
+    private string? errorMessage;
+
+    protected override void OnParametersSet()
+    {
+        if (IsOpen && !isSent && string.IsNullOrEmpty(content) && !string.IsNullOrEmpty(PrefilledContent))
+            content = PrefilledContent;
+    }
+
+    private async Task Send()
+    {
+        if (string.IsNullOrWhiteSpace(content)) return;
+        isSending = true;
+        errorMessage = null;
+        var ok = await LetterApi.SendAsync(new SendLetterRequest(RecipientId, content, senderAllowsDisplay));
+        if (ok)
+        {
+            isSent = true;
+            await OnSentAsync.InvokeAsync();
+        }
+        else
+        {
+            errorMessage = "送信に失敗しました。もう一度お試しください。";
+        }
+        isSending = false;
+    }
+
+    private async Task Cancel()
+    {
+        isSent = false;
+        content = "";
+        senderAllowsDisplay = true;
+        errorMessage = null;
+        await OnCloseAsync.InvokeAsync();
+    }
+}

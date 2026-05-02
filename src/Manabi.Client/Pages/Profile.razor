@@ -1,6 +1,7 @@
 @page "/profile"
 @attribute [Authorize]
 @inject TeacherApiService TeacherApi
+@inject MatteringApiService MatteringApi
 
 <PageTitle>マイページ — Mananect</PageTitle>
 
@@ -18,6 +19,14 @@
 }
 else
 {
+    @if (stats is not null)
+    {
+        <div class="mb-4 p-3 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+            <p class="mb-1 text-success fw-semibold">🌿 @stats.UniquePartners 人にあなたの話が届いた</p>
+            <p class="mb-0 text-success fw-semibold">🌿 @stats.LetterCount 通の手紙を受け取った</p>
+        </div>
+    }
+
     <div class="card shadow-sm">
         <div class="card-body">
             <h5 class="card-title mb-3">@(hasProfile ? "プロフィール編集" : "プロフィールを作成")</h5>
@@ -29,11 +38,30 @@ else
             <EditForm Model="model" OnValidSubmit="SubmitAsync">
                 <DataAnnotationsValidator />
 
-                <div class="mb-3">
-                    <label class="form-label fw-bold">自己紹介・話せる経験</label>
-                    <div class="form-text mb-2">あなたが経験してきたこと、誰かに話したい思い、伝えられる気づきを自由に書いてください。</div>
-                    <InputTextArea class="form-control" rows="5" @bind-Value="bioInput"
-                                   placeholder="例：30歳で起業して2年で挫折しました。その失敗の中で気づいたこと、また同じ道を選ぶ人に伝えたいことがあります。" />
+                <div class="mb-4">
+                    <p class="fw-bold mb-3">あなたの経験を教えてください</p>
+
+                    <div class="mb-3">
+                        <label class="form-label">Q1. あなたが乗り越えた経験を一つ教えてください <span class="text-danger">*</span></label>
+                        <InputTextArea class="form-control" rows="3" @bind-Value="bioQ1"
+                                       placeholder="例：30歳で起業して2年で失敗しました。その時に気づいたことが今も生きています。" />
+                        @if (q1Error is not null)
+                        {
+                            <div class="text-danger small mt-1">@q1Error</div>
+                        }
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Q2. その時に気づいたことは？ <span class="text-muted small">（任意）</span></label>
+                        <InputTextArea class="form-control" rows="3" @bind-Value="bioQ2"
+                                       placeholder="例：失敗は終わりではなく、方向転換のサインだと気づきました。" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Q3. 同じ経験をしている人に伝えたいことは？ <span class="text-muted small">（任意）</span></label>
+                        <InputTextArea class="form-control" rows="3" @bind-Value="bioQ3"
+                                       placeholder="例：一人で抱え込まないでほしい。話すだけで楽になることがあります。" />
+                    </div>
                 </div>
 
                 <div class="mb-3">
@@ -84,9 +112,13 @@ else
     private bool isSaving = false;
     private string? successMessage;
     private string? errorMessage;
+    private string? q1Error;
     private string skillsInput = "";
-    private string bioInput = "";
+    private string bioQ1 = "";
+    private string bioQ2 = "";
+    private string bioQ3 = "";
     private HashSet<string> selectedCategories = new();
+    private MatteringStats? stats;
 
     private readonly UpdateTeacherProfileRequest model = new();
 
@@ -94,13 +126,18 @@ else
     {
         try
         {
-            var profile = await TeacherApi.GetMyProfileAsync();
+            var profileTask = TeacherApi.GetMyProfileAsync();
+            var statsTask = MatteringApi.GetStatsAsync();
+            await Task.WhenAll(profileTask, statsTask);
+
+            stats = statsTask.Result;
+            var profile = profileTask.Result;
             if (profile is not null)
             {
                 hasProfile = true;
-                bioInput = profile.Bio;
                 skillsInput = string.Join(", ", profile.Skills);
                 selectedCategories = new HashSet<string>(profile.Categories);
+                ParseBioToPrompts(profile.Bio);
             }
         }
         catch (Exception ex)
@@ -113,6 +150,24 @@ else
         }
     }
 
+    private void ParseBioToPrompts(string bio)
+    {
+        // Bio を改行2つで区切って3つのQ&Aに分割。旧形式はQ1にまとめてプリフィル。
+        var parts = bio.Split("\n\n", 3, StringSplitOptions.None);
+        bioQ1 = parts.Length > 0 ? parts[0] : "";
+        bioQ2 = parts.Length > 1 ? parts[1] : "";
+        bioQ3 = parts.Length > 2 ? parts[2] : "";
+    }
+
+    private string BuildBioFromPrompts()
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(bioQ1)) parts.Add(bioQ1.Trim());
+        if (!string.IsNullOrWhiteSpace(bioQ2)) parts.Add(bioQ2.Trim());
+        if (!string.IsNullOrWhiteSpace(bioQ3)) parts.Add(bioQ3.Trim());
+        return string.Join("\n\n", parts);
+    }
+
     private void ToggleCategory(string cat, bool isChecked)
     {
         if (isChecked) selectedCategories.Add(cat);
@@ -121,10 +176,18 @@ else
 
     private async Task SubmitAsync()
     {
+        q1Error = null;
+        if (string.IsNullOrWhiteSpace(bioQ1))
+        {
+            q1Error = "Q1は必須です。乗り越えた経験を教えてください。";
+            return;
+        }
+
         isSaving = true;
         errorMessage = null;
         successMessage = null;
 
+        var bio = BuildBioFromPrompts();
         var skills = skillsInput
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToList();
@@ -133,7 +196,7 @@ else
         {
             model.Skills = skills;
             model.Categories = selectedCategories.ToList();
-            model.Bio = bioInput;
+            model.Bio = bio;
             var ok = await TeacherApi.UpdateProfileAsync(model);
             if (ok) successMessage = "保存しました。";
             else errorMessage = "保存に失敗しました。";
@@ -144,7 +207,7 @@ else
             {
                 Skills = skills.Count > 0 ? skills : new List<string> { "経験" },
                 Categories = selectedCategories.ToList(),
-                Bio = bioInput
+                Bio = bio
             };
             var ok = await TeacherApi.CreateProfileAsync(createReq);
             if (ok)
