@@ -5,6 +5,7 @@
 @inject StoryApiService StoryApi
 @inject HttpClient Http
 @inject AnalyticsService Analytics
+@inject NavigationManager Nav
 
 <PageTitle>マイページ — Mananect</PageTitle>
 
@@ -24,9 +25,12 @@ else
 {
     @if (stats is not null)
     {
-        <div class="mb-4 p-3 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+        <div class="mb-4 p-3 rounded mattering-counter" role="button" tabindex="0"
+             style="background:#f0fdf4;border:1px solid #bbf7d0;cursor:pointer;"
+             @onclick='() => Nav.NavigateTo("/my-letters")'>
             <p class="mb-1 text-success fw-semibold">🌿 @stats.UniquePartners 人にあなたの話が届いた</p>
             <p class="mb-0 text-success fw-semibold">🌿 @stats.LetterCount 通の手紙を受け取った</p>
+            <p class="mb-0 text-success small mt-1">→ 受け取った手紙を見る</p>
         </div>
     }
 

@@ -89,10 +89,10 @@ else
                 </div>
             }
 
+            <hr />
+            <h6 class="mb-3">🌿 この人への手紙</h6>
             @if (publicLetters.Count > 0)
             {
-                <hr />
-                <h6 class="mb-3">🌿 この人への手紙</h6>
                 @foreach (var letter in visibleLetters)
                 {
                     <div class="mb-3 p-3 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0;">
@@ -106,6 +106,10 @@ else
                         もっと見る (@(publicLetters.Count - 3)件)
                     </button>
                 }
+            }
+            else
+            {
+                <p class="text-muted small fst-italic mb-0">まだ手紙はありません</p>
             }
         </div>
     </div>

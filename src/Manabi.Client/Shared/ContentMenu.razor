@@ -5,6 +5,8 @@
             @onclick="ToggleMenu" @onclick:stopPropagation="true">⋯</button>
     @if (isOpen)
     {
+        <div class="position-fixed top-0 start-0 w-100 h-100" style="z-index:999;background:transparent;"
+             @onclick="CloseMenu"></div>
         <div class="dropdown-menu show shadow" style="position:absolute;right:0;top:100%;min-width:160px;z-index:1000;"
              @onclick:stopPropagation="true">
             @if (!string.IsNullOrEmpty(TargetUserId))
@@ -12,7 +14,7 @@
                 <button class="dropdown-item text-danger" @onclick="BlockUser">このユーザーをブロック</button>
                 <div class="dropdown-divider"></div>
             }
-            <button class="dropdown-item" @onclick="() => ShowReportForm = true">通報する</button>
+            <button class="dropdown-item" @onclick="OpenReportForm">通報する</button>
         </div>
     }
 </div>
@@ -91,6 +93,13 @@
     };
 
     private void ToggleMenu() => isOpen = !isOpen;
+    private void CloseMenu() => isOpen = false;
+
+    private void OpenReportForm()
+    {
+        isOpen = false;
+        ShowReportForm = true;
+    }
 
     private async Task BlockUser()
     {

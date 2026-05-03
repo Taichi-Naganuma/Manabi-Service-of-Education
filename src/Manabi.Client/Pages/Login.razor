@@ -53,8 +53,24 @@
         if (auth is null)
             errorMessage = error ?? "ログインに失敗しました。";
         else
-            Nav.NavigateTo("/teachers");
+            Nav.NavigateTo(GetReturnUrl());
 
         isLoading = false;
+    }
+
+    private string GetReturnUrl()
+    {
+        var query = Nav.ToAbsoluteUri(Nav.Uri).Query;
+        if (string.IsNullOrEmpty(query)) return "/teachers";
+        foreach (var part in query.TrimStart('?').Split('&'))
+        {
+            var eq = part.IndexOf('=');
+            if (eq <= 0) continue;
+            if (part[..eq] != "returnUrl") continue;
+            var url = Uri.UnescapeDataString(part[(eq + 1)..]);
+            if (url.StartsWith('/') && !url.StartsWith("//"))
+                return url;
+        }
+        return "/teachers";
     }
 }
