@@ -18,6 +18,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<AccountDeletionLog> AccountDeletionLogs => Set<AccountDeletionLog>();
+    public DbSet<UserActionLog> UserActionLogs => Set<UserActionLog>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -144,5 +145,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             .WithMany()
             .HasForeignKey(r => r.ReporterUserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<UserActionLog>()
+            .HasIndex(l => new { l.UserId, l.EventName, l.CreatedAt });
     }
 }

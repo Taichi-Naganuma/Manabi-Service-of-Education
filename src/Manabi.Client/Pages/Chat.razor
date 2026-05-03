@@ -6,6 +6,7 @@
 @inject UserApiService UserApi
 @inject AuthenticationStateProvider AuthState
 @inject IJSRuntime JS
+@inject AnalyticsService Analytics
 
 <PageTitle>チャット — Mananect</PageTitle>
 
@@ -152,6 +153,7 @@
 
         // システムメッセージを送信
         await HubService.SendMessageAsync(RecipientId, "— ここからセッションがはじまりました —");
+        Analytics.Track("session_started", "/chat", RecipientId);
     }
 
     private void OpenLetterModal()
@@ -165,6 +167,7 @@
     private async Task OnLetterSent()
     {
         showLetterModal = false;
+        Analytics.Track("letter_sent", "/chat", RecipientId);
         // チャットタイムラインに手紙イベントを表示
         messages.Add(new MessageResponse
         {
@@ -182,6 +185,7 @@
     private async Task EndSession()
     {
         await HubService.SendMessageAsync(RecipientId, "— セッションが終わりました —");
+        Analytics.Track("session_ended", "/chat", RecipientId);
         showReflectionModal = true;
     }
 

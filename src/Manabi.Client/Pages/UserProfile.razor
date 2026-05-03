@@ -3,6 +3,7 @@
 @inject UserApiService UserApi
 @inject NavigationManager Nav
 @inject HttpClient Http
+@inject AnalyticsService Analytics
 
 <PageTitle>@(profile?.DisplayName ?? "プロフィール") — Mananect</PageTitle>
 
@@ -135,6 +136,8 @@ else
         profile = profileTask.Result;
         publicLetters = lettersTask.Result ?? [];
         isLoading = false;
+        if (profile is not null)
+            Analytics.Track("member_profile_viewed", $"/users/{UserId}", UserId);
     }
 
     private void OpenSessionModal() => isModalOpen = true;

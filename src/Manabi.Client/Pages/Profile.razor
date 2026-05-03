@@ -4,6 +4,7 @@
 @inject MatteringApiService MatteringApi
 @inject StoryApiService StoryApi
 @inject HttpClient Http
+@inject AnalyticsService Analytics
 
 <PageTitle>マイページ — Mananect</PageTitle>
 
@@ -391,6 +392,7 @@ else
             {
                 hasProfile = true;
                 successMessage = "プロフィールを作成しました。";
+                Analytics.Track("profile_created", "/profile");
             }
             else
             {

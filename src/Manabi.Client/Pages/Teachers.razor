@@ -5,6 +5,7 @@
 @inject StoryApiService StoryApi
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthState
+@inject AnalyticsService Analytics
 
 <PageTitle>@(string.IsNullOrEmpty(CategoryFilter) ? "メンバーを探す" : CategoryFilter) — Mananect</PageTitle>
 
@@ -185,6 +186,8 @@ else
             skill: string.IsNullOrEmpty(skillFilter) ? null : skillFilter,
             sortBy: string.IsNullOrEmpty(sortBy) ? null : sortBy);
         isLoading = false;
+        if (!string.IsNullOrEmpty(skillFilter) || !string.IsNullOrEmpty(CategoryFilter))
+            Analytics.Track("search_executed", "/members", null, skillFilter);
     }
 
     private async Task LoadStoriesAsync()

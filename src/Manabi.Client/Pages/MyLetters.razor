@@ -1,6 +1,7 @@
 @page "/my-letters"
 @attribute [Authorize]
 @inject LetterApiService LetterApi
+@inject AnalyticsService Analytics
 
 <PageTitle>届いた手紙 — Mananect</PageTitle>
 
@@ -129,6 +130,7 @@ else
         received = t1.Result;
         sent = t2.Result;
         isLoading = false;
+        Analytics.Track("letter_viewed", "/my-letters");
     }
 
     private async Task ToggleDisplay(LetterDto letter, bool allowDisplay)

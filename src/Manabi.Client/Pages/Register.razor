@@ -1,6 +1,7 @@
 @page "/register"
 @inject AuthService AuthService
 @inject NavigationManager Nav
+@inject AnalyticsService Analytics
 
 <PageTitle>新規登録 — Mananect</PageTitle>
 
@@ -59,7 +60,10 @@
         if (auth is null)
             errorMessage = error ?? "登録に失敗しました。";
         else
+        {
+            Analytics.Track("register_completed", "/register");
             Nav.NavigateTo("/onboarding");
+        }
 
         isLoading = false;
     }

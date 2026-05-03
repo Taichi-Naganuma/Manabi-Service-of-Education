@@ -32,5 +32,6 @@ builder.Services.AddScoped<ChatHubService>();
 builder.Services.AddScoped<StoryApiService>();
 builder.Services.AddScoped<MatteringApiService>();
 builder.Services.AddScoped<LetterApiService>();
+builder.Services.AddScoped<AnalyticsService>();
 
 await builder.Build().RunAsync();
