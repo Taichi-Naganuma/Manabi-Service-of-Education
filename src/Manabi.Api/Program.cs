@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Manabi.Api.Commands;
 using Manabi.Api.Data;
 using Manabi.Api.Hubs;
 using Manabi.Api.Models;
@@ -46,6 +47,7 @@ builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<TeacherService>();
 builder.Services.AddScoped<ChatService>();
+builder.Services.AddScoped<AccountDeletionService>();
 builder.Services.AddScoped<IEmailService, SendGridEmailService>();
 
 builder.Services.AddAuthentication(options =>
@@ -107,6 +109,11 @@ using (var scope = app.Services.CreateScope())
     await db.Database.MigrateAsync();
 }
 
+if (args.Length > 0 && args[0] == "cleanup-test-accounts")
+{
+    return await CleanupTestAccountsCommand.RunAsync(args, app.Services);
+}
+
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 app.UseCors("AllowClient");
@@ -117,3 +124,4 @@ app.MapHub<ChatHub>("/hubs/chat");
 app.MapFallbackToFile("index.html");
 
 app.Run();
+return 0;

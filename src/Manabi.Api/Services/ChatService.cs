@@ -83,6 +83,7 @@ public class ChatService(AppDbContext db)
         RecipientId = m.RecipientId,
         Content = m.Content,
         SentAt = m.SentAt,
-        IsOwn = m.SenderId == currentUserId
+        IsOwn = m.SenderId == currentUserId,
+        IsSenderDeleted = m.Sender.IsDeleted
     };
 }

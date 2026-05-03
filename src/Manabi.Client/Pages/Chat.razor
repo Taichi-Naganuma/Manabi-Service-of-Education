@@ -29,6 +29,15 @@
                     </span>
                 </div>
             }
+            else if (msg.IsSenderDeleted)
+            {
+                <div class="d-flex justify-content-start mb-2">
+                    <div class="p-2 rounded border" style="max-width:70%;background:#f8f8f8;color:#999;">
+                        <div style="white-space:pre-wrap;">@msg.Content</div>
+                        <small>退会したユーザー · @msg.SentAt.ToLocalTime().ToString("HH:mm")</small>
+                    </div>
+                </div>
+            }
             else
             {
                 <div class="d-flex @(msg.IsOwn ? "justify-content-end" : "justify-content-start") mb-2">
@@ -124,8 +133,8 @@
         var seen = await JS.InvokeAsync<string?>("localStorage.getItem", seenKey);
         if (seen is null)
         {
-            // Listener か Speaker かを判定（プロフィールを持っているかどうか）
-            isListener = !(user?.IsTeacher ?? false);
+            // 相手が Speaker（IsTeacher=true）なら自分は Listener として参加
+            isListener = user?.IsTeacher ?? false;
             showSessionStart = true;
         }
     }

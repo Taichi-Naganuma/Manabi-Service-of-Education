@@ -1,0 +1,150 @@
+@page "/settings/account"
+@attribute [Authorize]
+@inject UserApiService UserApi
+@inject AuthService AuthService
+@inject NavigationManager Nav
+
+<PageTitle>アカウント設定 — Mananect</PageTitle>
+
+<h2 class="mb-4">アカウント設定</h2>
+
+<div class="card mb-4 border-danger">
+    <div class="card-header bg-danger text-white">
+        <strong>アカウント削除</strong>
+    </div>
+    <div class="card-body">
+        <p class="text-muted mb-3">
+            アカウントを削除すると、あなたの個人情報・プロフィール・受け取った手紙・チャット履歴は完全に削除されます。
+        </p>
+        <p class="text-muted mb-4">
+            あなたが送った手紙は <strong>「退会したユーザー」からの手紙</strong> として相手の元に残ります。
+            これは、相手の方が大切に受け取った記録を尊重するための仕様です。
+        </p>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">退会の理由を教えてください（必須）</label>
+            <select class="form-select" @bind="selectedReason">
+                <option value="">— 選択してください —</option>
+                <option value="@((int)AccountDeletionReason.DontKnowHowToUse)">使い方がわからなかった</option>
+                <option value="@((int)AccountDeletionReason.NotMyService)">サービスが合わなかった</option>
+                <option value="@((int)AccountDeletionReason.WantToReregister)">アカウントを作り直したい</option>
+                <option value="@((int)AccountDeletionReason.TestAccount)">テスト用だった</option>
+                <option value="@((int)AccountDeletionReason.Other)">その他</option>
+            </select>
+        </div>
+
+        <button class="btn btn-outline-danger"
+                disabled="@(string.IsNullOrEmpty(selectedReason) || isProcessing)"
+                @onclick="OpenConfirmModal">
+            アカウント削除へ進む
+        </button>
+    </div>
+</div>
+
+@if (errorMessage is not null)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+@if (showConfirmModal)
+{
+    <div class="modal d-block" style="background:rgba(0,0,0,0.6);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-danger">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">⚠️ 本当にアカウントを削除しますか？</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger mb-3">
+                        <strong>この操作は取り消せません。</strong>
+                    </div>
+                    <p>削除されるもの：</p>
+                    <ul class="text-muted">
+                        <li>プロフィール・自己紹介・アイコン</li>
+                        <li>あなたが投稿した Story Cards</li>
+                        <li>あなたが受け取った手紙</li>
+                        <li>すべてのチャット履歴</li>
+                        <li>メール通知設定</li>
+                    </ul>
+                    <p>残るもの：</p>
+                    <ul class="text-muted">
+                        <li>あなたが <strong>送った</strong> 手紙（「退会したユーザー」として表示）</li>
+                        <li>セッション統計（個人特定不可）</li>
+                    </ul>
+
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" id="confirmCheck"
+                               @bind="confirmed" />
+                        <label class="form-check-label fw-semibold" for="confirmCheck">
+                            上記を理解した上で、アカウントを削除することに同意します
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary"
+                            @onclick="CloseConfirmModal"
+                            disabled="@isProcessing">
+                        キャンセル
+                    </button>
+                    <button class="btn btn-danger"
+                            disabled="@(!confirmed || isProcessing)"
+                            @onclick="DeleteAsync">
+                        @if (isProcessing)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        削除する
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string selectedReason = "";
+    private bool showConfirmModal = false;
+    private bool confirmed = false;
+    private bool isProcessing = false;
+    private string? errorMessage;
+
+    private void OpenConfirmModal()
+    {
+        confirmed = false;
+        errorMessage = null;
+        showConfirmModal = true;
+    }
+
+    private void CloseConfirmModal()
+    {
+        showConfirmModal = false;
+        confirmed = false;
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (!confirmed || string.IsNullOrEmpty(selectedReason)) return;
+
+        isProcessing = true;
+        errorMessage = null;
+        try
+        {
+            var reason = (AccountDeletionReason)int.Parse(selectedReason);
+            var ok = await UserApi.DeleteAccountAsync(reason);
+            if (!ok)
+            {
+                errorMessage = "削除に失敗しました。時間をおいて再度お試しください。";
+                isProcessing = false;
+                return;
+            }
+
+            await AuthService.LogoutAsync();
+            Nav.NavigateTo("/?deleted=1", forceLoad: true);
+        }
+        catch
+        {
+            errorMessage = "削除に失敗しました。時間をおいて再度お試しください。";
+            isProcessing = false;
+        }
+    }
+}

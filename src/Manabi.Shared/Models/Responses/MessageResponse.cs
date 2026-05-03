@@ -10,4 +10,5 @@ public class MessageResponse
     public DateTime SentAt { get; set; }
     public bool IsOwn { get; set; }
     public bool IsSystemMessage { get; set; }
+    public bool IsSenderDeleted { get; set; }
 }

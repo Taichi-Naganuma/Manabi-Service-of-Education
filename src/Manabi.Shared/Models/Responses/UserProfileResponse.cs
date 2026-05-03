@@ -7,6 +7,7 @@ public class UserProfileResponse
     public string Bio { get; set; } = string.Empty;
     public string? AvatarUrl { get; set; }
     public bool IsTeacher { get; set; }
+    public bool IsDeleted { get; set; }
     public List<string>? Skills { get; set; }
     public List<string>? Categories { get; set; }
     public int? Rate30Min { get; set; }

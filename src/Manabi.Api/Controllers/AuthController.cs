@@ -49,7 +49,7 @@ public class AuthController(
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest req)
     {
         var user = await userManager.FindByEmailAsync(req.Email);
-        if (user == null)
+        if (user == null || user.IsDeleted)
             return Unauthorized("メールアドレスまたはパスワードが正しくありません。");
 
         var result = await signInManager.CheckPasswordSignInAsync(user, req.Password, lockoutOnFailure: false);
@@ -76,7 +76,7 @@ public class AuthController(
                   ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
         var user = await userManager.FindByIdAsync(userId!);
-        if (user == null) return Unauthorized();
+        if (user == null || user.IsDeleted) return Unauthorized();
 
         var (token, expiresAt) = tokenService.GenerateToken(user);
         return Ok(new AuthResponse

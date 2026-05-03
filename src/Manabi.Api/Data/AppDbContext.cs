@@ -17,6 +17,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<SelfReflection> SelfReflections => Set<SelfReflection>();
     public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
     public DbSet<Report> Reports => Set<Report>();
+    public DbSet<AccountDeletionLog> AccountDeletionLogs => Set<AccountDeletionLog>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
