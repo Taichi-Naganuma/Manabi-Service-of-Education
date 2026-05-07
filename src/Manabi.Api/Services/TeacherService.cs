@@ -9,7 +9,7 @@ namespace Manabi.Api.Services;
 public class TeacherService(AppDbContext db)
 {
     public async Task<List<TeacherProfileResponse>> SearchAsync(
-        string? skill, int? maxRate, string sortBy = "rating")
+        string? skill, int? maxRate, string? lifeDecision, string sortBy = "rating")
     {
         var query = db.TeacherProfiles
             .Include(t => t.User)
@@ -21,6 +21,9 @@ public class TeacherService(AppDbContext db)
 
         if (maxRate.HasValue)
             query = query.Where(t => t.Rate30Min <= maxRate.Value);
+
+        if (!string.IsNullOrWhiteSpace(lifeDecision))
+            query = query.Where(t => t.LifeDecisions.Any(d => d.DecisionKey == lifeDecision));
 
         query = sortBy switch
         {
@@ -52,7 +55,8 @@ public class TeacherService(AppDbContext db)
             Skills = req.Skills,
             Categories = req.Categories,
             Rate30Min = req.Rate30Min,
-            Rate60Min = req.Rate60Min
+            Rate60Min = req.Rate60Min,
+            LifeDecisions = req.LifeDecisions
         };
 
         db.TeacherProfiles.Add(profile);
@@ -84,6 +88,7 @@ public class TeacherService(AppDbContext db)
         if (req.Rate30Min.HasValue) profile.Rate30Min = req.Rate30Min.Value;
         if (req.Rate60Min.HasValue) profile.Rate60Min = req.Rate60Min.Value;
         if (req.Bio is not null) profile.User.Bio = req.Bio;
+        if (req.LifeDecisions is not null) profile.LifeDecisions = req.LifeDecisions;
 
         await db.SaveChangesAsync();
         return (ToResponse(profile), null);
@@ -100,6 +105,7 @@ public class TeacherService(AppDbContext db)
         Rate30Min = t.Rate30Min,
         Rate60Min = t.Rate60Min,
         AverageRating = t.AverageRating,
-        TotalReviews = t.TotalReviews
+        TotalReviews = t.TotalReviews,
+        LifeDecisions = t.LifeDecisions
     };
 }

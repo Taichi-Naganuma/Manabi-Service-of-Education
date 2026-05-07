@@ -92,6 +92,37 @@ else
                     </div>
                 </div>
 
+                <div class="mb-4">
+                    <label class="form-label fw-bold">通った岐路（複数選択可）</label>
+                    <div class="form-text mb-2">あなたが経験した岐路にチェックを入れてください。同じ岐路にいる人があなたを探せるようになります。</div>
+                    <div class="row g-2">
+                        @foreach (var ld in AvailableLifeDecisions)
+                        {
+                            <div class="col-12 col-md-6">
+                                <div class="d-flex align-items-start gap-2 p-2 rounded" style="background:@(selectedLifeDecisions.ContainsKey(ld.Key) ? "#f0fdf4" : "#fff");border:1px solid @(selectedLifeDecisions.ContainsKey(ld.Key) ? "#bbf7d0" : "#dee2e6");">
+                                    <input class="form-check-input mt-1 flex-shrink-0" type="checkbox" id="ld-@ld.Key"
+                                           checked="@selectedLifeDecisions.ContainsKey(ld.Key)"
+                                           @onchange="e => ToggleLifeDecision(ld.Key, (bool)e.Value!)" />
+                                    <div class="flex-grow-1">
+                                        <label class="form-check-label" for="ld-@ld.Key" style="cursor:pointer;">@ld.Value</label>
+                                        @if (selectedLifeDecisions.ContainsKey(ld.Key))
+                                        {
+                                            <div class="mt-1 d-flex align-items-center gap-1">
+                                                <span class="text-muted small">何年前？</span>
+                                                <input type="number" class="form-control form-control-sm" style="width:80px;"
+                                                       min="0" max="50" placeholder="年"
+                                                       value="@selectedLifeDecisions[ld.Key]"
+                                                       @oninput="e => SetYearsAgo(ld.Key, e.Value?.ToString())" />
+                                                <span class="text-muted small">年前</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
                 @if (errorMessage is not null)
                 {
                     <div class="alert alert-danger">@errorMessage</div>
@@ -221,6 +252,29 @@ else
         "恋愛", "人間関係", "仕事", "起業", "健康", "家族", "学び", "日常"
     };
 
+    private static readonly (string Key, string Value)[] AvailableLifeDecisions =
+    [
+        ("career_change",      "転職した"),
+        ("entrepreneurship",   "起業を経験した（成否問わず）"),
+        ("leave_of_absence",   "休職した"),
+        ("went_independent",   "独立した"),
+        ("got_married",        "結婚した"),
+        ("divorced",           "離婚した"),
+        ("relationship_other", "関係性の岐路（その他）"),
+        ("became_parent",      "子どもを持った"),
+        ("chose_no_children",  "子どもを持たない選択をした"),
+        ("caregiving",         "親を介護した・見送った"),
+        ("illness",            "病気と向き合った"),
+        ("broke_habit",        "依存・習慣を断ち切った"),
+        ("left_university",    "大学を辞めた"),
+        ("went_back_to_school","学位を取り直した"),
+        ("lost_someone",       "大切な人を失った（死別・喪失）"),
+        ("changed_direction",  "夢を諦めた・方向転換した"),
+        ("found_dream",        "夢を見つけた"),
+        ("lived_abroad",       "海外移住・留学した"),
+        ("mental_rock_bottom", "精神的などん底にいた・今もそこにいる"),
+    ];
+
     private bool isLoading = true;
     private bool hasProfile = false;
     private bool isSaving = false;
@@ -232,6 +286,7 @@ else
     private string bioQ2 = "";
     private string bioQ3 = "";
     private HashSet<string> selectedCategories = new();
+    private Dictionary<string, int?> selectedLifeDecisions = new();
     private MatteringStats? stats;
     private List<StoryEditDto> myStories = [];
     private bool notifyOnLetter = true;
@@ -269,6 +324,8 @@ else
                 hasProfile = true;
                 skillsInput = string.Join(", ", profile.Skills);
                 selectedCategories = new HashSet<string>(profile.Categories);
+                selectedLifeDecisions = profile.LifeDecisions
+                    .ToDictionary(d => d.DecisionKey, d => d.YearsAgo);
                 ParseBioToPrompts(profile.Bio);
             }
         }
@@ -356,6 +413,25 @@ else
         else selectedCategories.Remove(cat);
     }
 
+    private void ToggleLifeDecision(string key, bool isChecked)
+    {
+        if (isChecked) selectedLifeDecisions[key] = null;
+        else selectedLifeDecisions.Remove(key);
+    }
+
+    private void SetYearsAgo(string key, string? value)
+    {
+        if (!selectedLifeDecisions.ContainsKey(key)) return;
+        selectedLifeDecisions[key] = int.TryParse(value, out var n) ? n : null;
+    }
+
+    private List<LifeDecisionEntry> BuildLifeDecisions() =>
+        selectedLifeDecisions.Select(kv => new LifeDecisionEntry
+        {
+            DecisionKey = kv.Key,
+            YearsAgo = kv.Value
+        }).ToList();
+
     private async Task SubmitAsync()
     {
         q1Error = null;
@@ -374,11 +450,14 @@ else
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToList();
 
+        var lifeDecisions = BuildLifeDecisions();
+
         if (hasProfile)
         {
             model.Skills = skills;
             model.Categories = selectedCategories.ToList();
             model.Bio = bio;
+            model.LifeDecisions = lifeDecisions;
             var ok = await TeacherApi.UpdateProfileAsync(model);
             if (ok) successMessage = "保存しました。";
             else errorMessage = "保存に失敗しました。";
@@ -389,7 +468,8 @@ else
             {
                 Skills = skills.Count > 0 ? skills : new List<string> { "経験" },
                 Categories = selectedCategories.ToList(),
-                Bio = bio
+                Bio = bio,
+                LifeDecisions = lifeDecisions
             };
             var ok = await TeacherApi.CreateProfileAsync(createReq);
             if (ok)

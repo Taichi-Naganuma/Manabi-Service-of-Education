@@ -1,63 +1,79 @@
 @page "/"
 @inject StoryApiService StoryApi
 
-<PageTitle>Mananect — あなたの経験が、誰かの人生を変える</PageTitle>
+<PageTitle>Mananect — 人生の岐路で、先に通った人と話す</PageTitle>
 
 <div class="text-center mt-5 mb-5">
     <h1 class="display-4 fw-bold mb-3">Mananect</h1>
-    <p class="lead text-muted mb-4">あなたの話を、本気で聞いてくれる誰かに、会いに行く。</p>
-    <p class="fs-6 text-muted mb-4">資格も肩書きも必要ない。<br />あなたの人生経験で、誰かの人生が変わる。</p>
-</div>
+    <p class="lead fw-semibold mb-2" style="color:#1a3c2e;">人生の岐路で、先に通った人と話す。</p>
+    <p class="fs-6 text-muted mb-5">答えは Google には無い。<br /><strong>生きた人にしか聞けない</strong>ことがある。</p>
 
-<div class="container">
-    <div class="row g-3 mb-5">
-        @foreach (var category in categories)
-        {
-            <div class="col-6 col-md-3">
-                <a href="@($"/members?category={Uri.EscapeDataString(category)}")" class="btn btn-outline-primary w-100 p-3" style="text-decoration: none; white-space: normal;">
-                    @category
+    <h5 class="mb-3 fw-semibold text-muted">今、何と向き合っていますか？</h5>
+    <div class="container">
+        <div class="row g-2 justify-content-center mb-4" style="max-width:640px;margin:0 auto;">
+            @foreach (var decision in lifeDecisions)
+            {
+                <div class="col-6 col-md-4">
+                    <a href="@($"/members?lifeDecision={Uri.EscapeDataString(decision.Key)}")"
+                       class="btn w-100 py-2 px-3"
+                       style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;white-space:normal;text-align:left;font-size:0.9rem;">
+                        @decision.Value
+                    </a>
+                </div>
+            }
+            <div class="col-6 col-md-4">
+                <a href="/members" class="btn w-100 py-2 px-3"
+                   style="background:#f8f9fa;border:1px solid #dee2e6;color:#6c757d;white-space:normal;text-align:left;font-size:0.9rem;">
+                    その他・すべてを見る
                 </a>
             </div>
-        }
-    </div>
-
-    @if (stories.Count > 0)
-    {
-        <div class="mb-5">
-            <h4 class="mb-3 fw-bold">最近の経験から</h4>
-            <div class="row g-4">
-                @foreach (var story in stories)
-                {
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card h-100 border-0 shadow-sm">
-                            <div class="card-body">
-                                @if (!string.IsNullOrEmpty(story.Title))
-                                {
-                                    <p class="mb-2 fw-bold text-primary small">【@story.Title】</p>
-                                }
-                                <p class="mb-3 lh-base" style="white-space:pre-wrap;">@GetExcerpt(story.Content)</p>
-                                <p class="mb-0 text-muted small">— @story.AuthorName</p>
-                            </div>
-                            <div class="card-footer bg-transparent border-0 pt-0">
-                                <a href="/users/@story.AuthorUserId" class="btn btn-sm btn-outline-primary w-100">この人と話す</a>
-                            </div>
-                        </div>
-                    </div>
-                }
-            </div>
         </div>
-    }
-
-    <div class="text-center mt-3">
-        <a class="btn btn-secondary btn-lg" href="/members">すべてのメンバーを見る</a>
     </div>
 </div>
 
+@if (stories.Count > 0)
+{
+    <div class="container mb-5">
+        <h4 class="mb-3 fw-bold">最近の経験から</h4>
+        <div class="row g-4">
+            @foreach (var story in stories)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            @if (!string.IsNullOrEmpty(story.Title))
+                            {
+                                <p class="mb-2 fw-bold text-primary small">【@story.Title】</p>
+                            }
+                            <p class="mb-3 lh-base" style="white-space:pre-wrap;">@GetExcerpt(story.Content)</p>
+                            <p class="mb-0 text-muted small">— @story.AuthorName</p>
+                        </div>
+                        <div class="card-footer bg-transparent border-0 pt-0">
+                            <a href="/users/@story.AuthorUserId" class="btn btn-sm btn-outline-primary w-100">この人と話す</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
 @code {
-    private static readonly string[] categories = new[]
-    {
-        "恋愛", "仕事", "起業", "健康", "人間関係", "家族", "学び", "日常"
-    };
+    private static readonly (string Key, string Value)[] lifeDecisions =
+    [
+        ("career_change",      "仕事を変えるかどうか迷っている"),
+        ("entrepreneurship",   "起業するかどうか迷っている"),
+        ("leave_of_absence",   "仕事を休むことを考えている"),
+        ("got_married",        "結婚するかどうか迷っている"),
+        ("divorced",           "離婚するかどうか迷っている"),
+        ("became_parent",      "子どもを持つかどうか迷っている"),
+        ("caregiving",         "親の介護のことで悩んでいる"),
+        ("illness",            "病気・健康のことで不安がある"),
+        ("lost_someone",       "大切な人を失って、誰かと話したい"),
+        ("changed_direction",  "目標を変えることを考えている"),
+        ("lived_abroad",       "海外に出ることを考えている"),
+        ("mental_rock_bottom", "生きることがしんどい・誰かと話したい"),
+    ];
 
     private List<StoryDto> stories = [];
 

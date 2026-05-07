@@ -78,6 +78,19 @@ else
                 </div>
             }
 
+            @if (profile.LifeDecisions is { Count: > 0 })
+            {
+                <h6 class="mb-2">通った岐路</h6>
+                <div class="mb-4">
+                    @foreach (var ld in profile.LifeDecisions)
+                    {
+                        var label = GetDecisionLabel(ld.DecisionKey);
+                        var years = ld.YearsAgo.HasValue ? $"（{ld.YearsAgo}年前）" : "";
+                        <span class="badge me-1 mb-1" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;font-size:0.85rem;">🌿 @label@years</span>
+                    }
+                </div>
+            }
+
             @if (profile.Skills is { Count: > 0 })
             {
                 <h6 class="mb-2">話せるテーマ</h6>
@@ -156,6 +169,30 @@ else
     }
 
     private void OnUserBlocked() => Nav.NavigateTo("/members");
+
+    private static string GetDecisionLabel(string key) => key switch
+    {
+        "career_change" => "転職した",
+        "entrepreneurship" => "起業を経験した",
+        "leave_of_absence" => "休職した",
+        "went_independent" => "独立した",
+        "got_married" => "結婚した",
+        "divorced" => "離婚した",
+        "relationship_other" => "関係性の岐路",
+        "became_parent" => "子どもを持った",
+        "chose_no_children" => "子どもを持たない選択",
+        "caregiving" => "親を介護した・見送った",
+        "illness" => "病気と向き合った",
+        "broke_habit" => "依存・習慣を断ち切った",
+        "left_university" => "大学を辞めた",
+        "went_back_to_school" => "学位を取り直した",
+        "lost_someone" => "大切な人を失った",
+        "changed_direction" => "夢を諦めた・方向転換した",
+        "found_dream" => "夢を見つけた",
+        "lived_abroad" => "海外移住・留学した",
+        "mental_rock_bottom" => "精神的などん底にいた・今もそこにいる",
+        _ => key
+    };
 
     private record PublicLetterDto(Guid Id, string FromUserName, string FromUserId, string Content, DateTime CreatedAt);
 }

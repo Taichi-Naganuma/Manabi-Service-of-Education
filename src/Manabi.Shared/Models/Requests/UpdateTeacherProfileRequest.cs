@@ -7,4 +7,5 @@ public class UpdateTeacherProfileRequest
     public string? Bio { get; set; }
     public int? Rate30Min { get; set; }
     public int? Rate60Min { get; set; }
+    public List<LifeDecisionEntry>? LifeDecisions { get; set; }
 }

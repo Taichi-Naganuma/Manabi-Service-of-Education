@@ -1,3 +1,5 @@
+using Manabi.Shared.Models;
+
 namespace Manabi.Api.Models;
 
 public class TeacherProfile
@@ -12,4 +14,6 @@ public class TeacherProfile
     public int? Rate60Min { get; set; }
     public double AverageRating { get; set; }
     public int TotalReviews { get; set; }
+
+    public List<LifeDecisionEntry> LifeDecisions { get; set; } = [];
 }

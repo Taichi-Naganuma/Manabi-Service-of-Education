@@ -16,4 +16,6 @@ public class CreateTeacherProfileRequest
 
     [Range(0, 100000)]
     public int? Rate60Min { get; set; }
+
+    public List<LifeDecisionEntry> LifeDecisions { get; set; } = [];
 }

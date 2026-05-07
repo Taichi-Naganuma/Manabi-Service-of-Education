@@ -20,6 +20,16 @@
                               placeholder="@(IsListener ? "短くてもOKです。" : "自分だけの記録です。")"
                               @bind="reflectionText"></textarea>
                 </div>
+                @if (IsListener && !showSpeakerPrompt)
+                {
+                    <div class="mx-4 mb-3 p-3 rounded" style="background:#fffbeb;border:1px solid #fde68a;">
+                        <p class="mb-2 small" style="color:#92400e;">あなたも今日と同じ岐路を経験した立場かもしれません。</p>
+                        <div class="d-flex gap-2">
+                            <a href="/profile" class="btn btn-sm btn-warning px-3" style="font-size:0.8rem;">この経験をプロフィールに追加する</a>
+                            <button class="btn btn-sm btn-outline-secondary px-3" style="font-size:0.8rem;" @onclick="() => showSpeakerPrompt = true">後で</button>
+                        </div>
+                    </div>
+                }
                 <div class="modal-footer border-0 justify-content-center gap-2 pt-0 pb-4">
                     @if (IsListener)
                     {
@@ -53,10 +63,12 @@
     [Parameter] public EventCallback OnSavedAsync { get; set; }
 
     private string reflectionText = "";
+    private bool showSpeakerPrompt = false;
 
     private async Task Skip()
     {
         reflectionText = "";
+        showSpeakerPrompt = false;
         await OnSkipAsync.InvokeAsync();
     }
 

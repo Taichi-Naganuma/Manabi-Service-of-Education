@@ -7,10 +7,10 @@
 @inject AuthenticationStateProvider AuthState
 @inject AnalyticsService Analytics
 
-<PageTitle>@(string.IsNullOrEmpty(CategoryFilter) ? "メンバーを探す" : CategoryFilter) — Mananect</PageTitle>
+<PageTitle>@PageTitle() — Mananect</PageTitle>
 
 <div class="mb-4">
-    <h2 class="mb-3">@(string.IsNullOrEmpty(CategoryFilter) ? "メンバーを探す" : $"{CategoryFilter}の経験を持つ人")</h2>
+    <h2 class="mb-3">@PageHeading()</h2>
 
     <div class="row g-3 mb-4">
         <div class="col-md-5">
@@ -123,12 +123,14 @@ else
                             </div>
                         </div>
 
-                        @if (member.Categories.Count > 0)
+                        @if (member.LifeDecisions.Count > 0)
                         {
                             <div class="mb-2">
-                                @foreach (var cat in member.Categories.Take(4))
+                                @foreach (var ld in member.LifeDecisions.Take(3))
                                 {
-                                    <span class="badge bg-primary-subtle text-primary-emphasis me-1 mb-1">@cat</span>
+                                    var label = GetDecisionLabel(ld.DecisionKey);
+                                    var years = ld.YearsAgo.HasValue ? $"（{ld.YearsAgo}年前）" : "";
+                                    <span class="badge me-1 mb-1" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;">🌿 @label@years</span>
                                 }
                             </div>
                         }
@@ -159,6 +161,9 @@ else
     [SupplyParameterFromQuery(Name = "category")]
     public string? CategoryFilter { get; set; }
 
+    [SupplyParameterFromQuery(Name = "lifeDecision")]
+    public string? LifeDecisionFilter { get; set; }
+
     private List<TeacherProfileResponse> members = [];
     private List<StoryDto> categoryStories = [];
     private string? currentUserId;
@@ -172,6 +177,16 @@ else
     private string skillFilter = "";
     private string sortBy = "";
 
+    private string PageTitle() =>
+        !string.IsNullOrEmpty(LifeDecisionFilter) ? GetDecisionLabel(LifeDecisionFilter) + "の経験者"
+        : !string.IsNullOrEmpty(CategoryFilter) ? CategoryFilter
+        : "メンバーを探す";
+
+    private string PageHeading() =>
+        !string.IsNullOrEmpty(LifeDecisionFilter) ? $"「{GetDecisionLabel(LifeDecisionFilter)}」の経験者"
+        : !string.IsNullOrEmpty(CategoryFilter) ? $"{CategoryFilter}の経験を持つ人"
+        : "メンバーを探す";
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthState.GetAuthenticationStateAsync();
@@ -184,10 +199,11 @@ else
         isLoading = true;
         members = await TeacherApi.GetTeachersAsync(
             skill: string.IsNullOrEmpty(skillFilter) ? null : skillFilter,
+            lifeDecision: string.IsNullOrEmpty(LifeDecisionFilter) ? null : LifeDecisionFilter,
             sortBy: string.IsNullOrEmpty(sortBy) ? null : sortBy);
         isLoading = false;
-        if (!string.IsNullOrEmpty(skillFilter) || !string.IsNullOrEmpty(CategoryFilter))
-            Analytics.Track("search_executed", "/members", null, skillFilter);
+        if (!string.IsNullOrEmpty(skillFilter) || !string.IsNullOrEmpty(CategoryFilter) || !string.IsNullOrEmpty(LifeDecisionFilter))
+            Analytics.Track("search_executed", "/members", null, skillFilter ?? LifeDecisionFilter);
     }
 
     private async Task LoadStoriesAsync()
@@ -201,4 +217,28 @@ else
 
     private static string GetExcerpt(string content, int max = 100)
         => content.Length > max ? content[..max] + "…" : content;
+
+    private static string GetDecisionLabel(string key) => key switch
+    {
+        "career_change" => "転職した",
+        "entrepreneurship" => "起業を経験した",
+        "leave_of_absence" => "休職した",
+        "went_independent" => "独立した",
+        "got_married" => "結婚した",
+        "divorced" => "離婚した",
+        "relationship_other" => "関係性の岐路",
+        "became_parent" => "子どもを持った",
+        "chose_no_children" => "子どもを持たない選択",
+        "caregiving" => "親を介護した・見送った",
+        "illness" => "病気と向き合った",
+        "broke_habit" => "依存・習慣を断ち切った",
+        "left_university" => "大学を辞めた",
+        "went_back_to_school" => "学位を取り直した",
+        "lost_someone" => "大切な人を失った",
+        "changed_direction" => "夢を諦めた・方向転換した",
+        "found_dream" => "夢を見つけた",
+        "lived_abroad" => "海外移住・留学した",
+        "mental_rock_bottom" => "精神的などん底にいた・今もそこにいる",
+        _ => key
+    };
 }

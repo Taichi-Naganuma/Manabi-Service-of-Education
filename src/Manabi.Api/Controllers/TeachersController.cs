@@ -13,14 +13,15 @@ public class TeachersController(TeacherService teacherService) : ControllerBase
     private string CurrentUserId => User.FindFirst("sub")?.Value
         ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value;
 
-    // GET /api/teachers?skill=Unity&maxRate=2000&sortBy=rating
+    // GET /api/teachers?skill=Unity&maxRate=2000&lifeDecision=career_change&sortBy=rating
     [HttpGet]
     public async Task<ActionResult<List<TeacherProfileResponse>>> Search(
         [FromQuery] string? skill,
         [FromQuery] int? maxRate,
+        [FromQuery] string? lifeDecision,
         [FromQuery] string sortBy = "rating")
     {
-        var results = await teacherService.SearchAsync(skill, maxRate, sortBy);
+        var results = await teacherService.SearchAsync(skill, maxRate, lifeDecision, sortBy);
         return Ok(results);
     }
 

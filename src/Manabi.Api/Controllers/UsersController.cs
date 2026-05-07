@@ -53,7 +53,8 @@ public class UsersController(
             Rate30Min = teacherProfile?.Rate30Min,
             Rate60Min = teacherProfile?.Rate60Min,
             AverageRating = teacherProfile?.AverageRating,
-            TotalReviews = teacherProfile?.TotalReviews ?? 0
+            TotalReviews = teacherProfile?.TotalReviews ?? 0,
+            LifeDecisions = teacherProfile?.LifeDecisions
         });
     }
 

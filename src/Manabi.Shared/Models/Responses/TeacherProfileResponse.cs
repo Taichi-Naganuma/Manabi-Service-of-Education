@@ -12,4 +12,5 @@ public class TeacherProfileResponse
     public int? Rate60Min { get; set; }
     public double AverageRating { get; set; }
     public int TotalReviews { get; set; }
+    public List<LifeDecisionEntry> LifeDecisions { get; set; } = [];
 }

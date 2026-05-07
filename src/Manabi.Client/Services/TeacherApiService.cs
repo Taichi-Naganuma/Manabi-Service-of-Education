@@ -7,11 +7,12 @@ namespace Manabi.Client.Services;
 public class TeacherApiService(HttpClient http)
 {
     public async Task<List<TeacherProfileResponse>> GetTeachersAsync(
-        string? skill = null, int? maxRate = null, string? sortBy = null)
+        string? skill = null, int? maxRate = null, string? lifeDecision = null, string? sortBy = null)
     {
         var query = new List<string>();
         if (!string.IsNullOrEmpty(skill)) query.Add($"skill={Uri.EscapeDataString(skill)}");
         if (maxRate.HasValue) query.Add($"maxRate={maxRate}");
+        if (!string.IsNullOrEmpty(lifeDecision)) query.Add($"lifeDecision={Uri.EscapeDataString(lifeDecision)}");
         if (!string.IsNullOrEmpty(sortBy)) query.Add($"sortBy={sortBy}");
 
         var url = "/api/teachers" + (query.Count > 0 ? "?" + string.Join("&", query) : "");

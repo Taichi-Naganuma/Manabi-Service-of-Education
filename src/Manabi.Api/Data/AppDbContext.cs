@@ -28,6 +28,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             .Property(t => t.Skills)
             .HasColumnType("text[]");
 
+        builder.Entity<TeacherProfile>()
+            .OwnsMany(t => t.LifeDecisions, b => b.ToJson());
+
         builder.Entity<Session>()
             .HasOne(s => s.Teacher)
             .WithMany()
